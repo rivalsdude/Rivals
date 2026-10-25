@@ -131,3 +131,13 @@ body.relay-offline #onlineBadge { color:#7b83a3; }
 #nameInput { width:100%; padding:12px 14px; font:inherit; font-size:16px; font-weight:700; letter-spacing:.04em; text-align:center; color:#fff; background:#131c3c; border:1px solid #3c5598; border-radius:9px; outline:none; }
 #nameInput:focus { border-color:#62cfff; box-shadow:0 0 0 3px rgba(98,207,255,.18); }
 #nameConfirm { width:100%; margin-top:14px; padding:12px; }
+
+/* ---- pvp setup ---- */
+#duelSetup { display:none; position:fixed; inset:0; z-index:96; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 40%, rgba(28,51,111,.7), rgba(3,5,14,.94) 65%); backdrop-filter:blur(4px); }
+#duelSetup.open { display:flex; }
+#duelSetup h2 { margin:0 0 18px; font-size:18px; }
+#duelSetup h2 span { color:#6cd9ff; }
+.setup-field { display:block; text-align:left; margin-bottom:12px; font-size:10px; letter-spacing:.14em; color:#9fb0dd; font-weight:700; }
+.setup-field select { width:100%; margin-top:6px; padding:10px; color:#fff; background:#131c3c; border:1px solid #3c5598; border-radius:8px; font:inherit; font-size:13px; font-weight:700; }
+#duelSetup button { width:100%; margin-top:8px; padding:11px; }
+#duelSetup button.secondary { background:#263566; box-shadow:none; }

@@ -42,20 +42,24 @@ URL options:
 The lobby list header shows the connection state: `ONLINE · MAIN`, `CONNECTING…`
 or `LOCAL ONLY` (relay unreachable — only tabs in the same browser will see you).
 
-### 1v1 duels
+### PVP duels
 
-The lobby shows a player list (`#lobbyPlayerList`). Clicking `1V1` there — or
-clicking a player's floating name tag in the lobby — sends a `duel-invite`.
-The other tab gets an ACCEPT / DECLINE popup (`#duelPrompt`).
+The lobby shows a player list (`#lobbyPlayerList`). Clicking `PVP` there — or
+clicking a player's floating name tag in the lobby — opens a setup card
+(`#duelSetup`) where the challenger picks the map (Arena / Battleground) and the
+weapon (AR, sniper, handgun, fists, scythe). Sending it posts a `duel-invite`
+that carries both choices; the other tab gets an ACCEPT / DECLINE popup
+(`#duelPrompt`) that spells them out.
 
-- accepting starts `gameMode='duel'`: arena map, no bots, first to 5 kills
-- spawns are picked from the client ids (z = +18 / -18) so the two players
-  always start at opposite ends
+- accepting starts the chosen map as `gameMode`, with `duel.active` on: no
+  bots, no weapon switching (1-4 / G / quick melee are locked), first to 5 kills
+- spawns are picked from the client ids (z = +18 on Arena, ±24 on Battleground)
+  so the two players always start at opposite ends facing each other
 - each side counts its own deaths and reports them in `state`; the score is
   derived from the opponent's death count, so a dropped packet can never leave
   the two scoreboards disagreeing
 - `duel-end` returns both tabs to the lobby, as do disconnects (15s without a
-  state message) and the `LEAVE 1V1` button
+  state message) and the `LEAVE PVP` button
 
 ## Always push changes
 
