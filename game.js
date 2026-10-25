@@ -324,10 +324,10 @@ function makeRemoteAvatar(color,name){
   group.visible=false;
   return group;
 }
-const net=createNet(handleNetMessage);
+const net=createNet(handleNetMessage,{onReady:()=>{netSendHello();netSendState();}});
 function netSendHello(){net.send({t:'hello',skin:netSkin,name:netName});}
 function netSendState(){
-  net.send({t:'state',skin:netSkin,name:netName,p:[player.pos.x,player.pos.y,player.pos.z],yaw:player.yaw,hp:player.hp,mode:gameMode,score:duel.myScore,dueling:duel.active?1:0});
+  net.send({t:'state',skin:netSkin,name:netName,p:[player.pos.x,player.pos.y,player.pos.z],yaw:player.yaw,hp:player.hp,mode:gameMode,score:duel.myScore,deaths:duel.deaths,dueling:duel.active?1:0});
 }
 function removeRemote(id){
   const remote=remotePlayers.get(id);
@@ -353,11 +353,15 @@ function upsertRemote(message){
   remote.hp=message.hp;
   remote.mode=message.mode||'';
   remote.score=message.score||0;
+  remote.deaths=message.deaths||0;
+  remote.dueling=!!message.dueling;
   remote.lastSeen=performance.now();
-  if(duel.active&&duel.opponent===message.from){
-    duel.theirScore=remote.score;
+  if(duel.active&&duel.opponent===message.from&&remote.dueling){
+    duel.myScore=remote.deaths;
+    duel.theirScore=duel.deaths;
     updateDuelHud();
-    if(duel.theirScore>=DUEL_TARGET&&!duel.over)loseDuel();
+    if(duel.myScore>=DUEL_TARGET&&!duel.over)winDuel();
+    else if(duel.theirScore>=DUEL_TARGET&&!duel.over)loseDuel();
   }
 }
 function applyRemoteHit(message){
@@ -374,8 +378,9 @@ function applyRemoteHit(message){
     hpTextEl.textContent=100;
     showMessage('KILLED BY '+(message.name||'PLAYER'));
     if(duel.active){
-      net.send({t:'duel-kill',to:message.from});
+      duel.deaths++;
       netSendState();
+      if(duel.deaths>=DUEL_TARGET)loseDuel();
       return;
     }
   }
@@ -402,21 +407,17 @@ function handleNetMessage(message){
     if(message.to===net.id)applyRemoteHit(message);
   }else if(message.t==='duel-invite'){
     if(message.to!==net.id)return;
+    if(duel.pending===message.from)return;
     if(duel.active||duel.pending){net.send({t:'duel-decline',to:message.from,name:netName});return;}
     showDuelPrompt(message.from,message.name);
     lobbyStatus((message.name||'PLAYER')+' CHALLENGES YOU');
   }else if(message.t==='duel-accept'){
     if(message.to!==net.id)return;
-    if(duel.active){net.send({t:'duel-end',to:message.from,reason:'busy'});return;}
+    if(duel.active){if(duel.opponent!==message.from)net.send({t:'duel-end',to:message.from,reason:'busy'});return;}
     startDuel(message.from,message.name);
   }else if(message.t==='duel-decline'){
     if(message.to!==net.id)return;
     lobbyStatus((message.name||'PLAYER')+' DECLINED');
-  }else if(message.t==='duel-kill'){
-    if(message.to!==net.id||!duel.active)return;
-    duel.myScore++;
-    updateDuelHud();
-    if(duel.myScore>=DUEL_TARGET)winDuel();
   }else if(message.t==='duel-end'){
     if(message.to!==net.id||!duel.active)return;
     if(!duel.over){
@@ -454,7 +455,7 @@ function updateRemotePlayers(dt){
 
 /* ---------------- 1V1 DUELS + LOBBY PLAYER LIST ---------------- */
 const DUEL_TARGET=5;
-const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,pending:null,pendingName:''};
+const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:''};
 function duelSpawnZ(){return String(net.id)<String(duel.opponent)?18:-18;}
 function escapeHtml(text){
   return String(text).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -480,6 +481,13 @@ function renderLobbyList(){
   list.innerHTML=rows.join('');
   const count=document.getElementById('lobbyCount');
   if(count)count.textContent=String(others+1);
+  const badge=document.getElementById('netStatus');
+  if(badge){
+    const online=net.status==='online';
+    badge.textContent=online?'ONLINE · '+net.room.toUpperCase():net.status==='connecting'?'CONNECTING…':'LOCAL ONLY';
+    badge.style.color=online?'#4bf0a8':'#8a91ad';
+    badge.title=online?'Connected through the internet relay — other computers can join':'Only tabs in this browser can see you';
+  }
 }
 function inviteDuel(id){
   const remote=remotePlayers.get(id);
@@ -505,7 +513,9 @@ function updateDuelHud(){
 function startDuel(opponentId,opponentName){
   duel.active=true;duel.over=false;
   duel.opponent=opponentId;duel.opponentName=opponentName||'OPPONENT';
-  duel.myScore=0;duel.theirScore=0;
+  duel.myScore=0;duel.theirScore=0;duel.deaths=0;
+  const opponent=remotePlayers.get(opponentId);
+  if(opponent)opponent.deaths=0;
   hideDuelPrompt();
   document.body.classList.add('duel');
   startGame('duel');
@@ -532,7 +542,7 @@ function loseDuel(){
 function finishDuel(){
   if(!duel.active)return;
   duel.active=false;duel.over=false;duel.opponent=null;
-  duel.myScore=0;duel.theirScore=0;
+  duel.myScore=0;duel.theirScore=0;duel.deaths=0;
   document.body.classList.remove('duel');
   enterLobby();
 }
@@ -745,6 +755,7 @@ function dbgRefresh(){
     ['fly',player.fly?('ON · '+player.flySpeed+' u/s'):'off'],
     ['bots',bots.filter(b=>b.alive).length+' alive / '+bots.length],
     ['players',(remotePlayers.size+1)+' in session'],
+    ['net',net.status+' · '+(net.online?'relay':'browser only')+' · '+net.room],
     ['lock',locked?'captured':'free'],
     ['keys',Object.keys(keys).filter(k=>keys[k]).join(' ')||'-']
   ];

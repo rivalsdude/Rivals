@@ -9,11 +9,18 @@ This is a static browser game with no build step (Three.js loaded from a CDN):
 
 ## Multiplayer
 
-There is no server: tabs of the *same browser* find each other over
-`BroadcastChannel`. Open `http://127.0.0.1:8731/index.html` in two tabs, and
-each tab shows the other player (lobby and matches) wearing a different skin.
+Two transports run at once:
 
-- `hello` / `state` / `hit` / `bye` messages, state sent 10x per second
+1. **Same browser** — `BroadcastChannel` (localStorage events as a fallback).
+2. **Internet** — MQTT over WebSocket through public brokers, so two different
+   computers can play together. No account or server of your own is needed.
+
+`multiplayer.js` joins every broker in `BROKERS` and publishes on all of them,
+so two computers only need one broker that both can reach. Every message has a
+unique `mid`, so copies arriving over two channels are only handled once.
+
+- `hello` / `state` / `hit` / `bye` / `duel-*` messages
+- state is sent 10x per second locally and 5x per second over the internet
 - a background tab also sends state every 0.8s (`setInterval`), because its
   `requestAnimationFrame` loop is paused and the other tab would otherwise
   lose track of it
@@ -24,6 +31,14 @@ each tab shows the other player (lobby and matches) wearing a different skin.
 - shots/hits are relayed; each tab owns its own HP and respawns
 - bots are still simulated per tab (they are not synced)
 
+URL options:
+
+- default room is `main`; `?room=whatever` isolates a private session
+- `?nolocal=1` ignores same-browser tabs, useful to test the internet relay
+
+The lobby list header shows the connection state: `ONLINE · MAIN`, `CONNECTING…`
+or `LOCAL ONLY` (relay unreachable — only tabs in the same browser will see you).
+
 ### 1v1 duels
 
 The lobby shows a player list (`#lobbyPlayerList`). Clicking `1V1` there — or
@@ -33,10 +48,11 @@ The other tab gets an ACCEPT / DECLINE popup (`#duelPrompt`).
 - accepting starts `gameMode='duel'`: arena map, no bots, first to 5 kills
 - spawns are picked from the client ids (z = +18 / -18) so the two players
   always start at opposite ends
-- kills are relayed with `duel-kill`; each side counts its own score and the
-  HUD shows your score vs the opponent's (taken from their `state` message)
-- winner sends `duel-end`; both tabs fall back to the lobby, as do
-  disconnects (15s without a state message) and the `LEAVE 1V1` button
+- each side counts its own deaths and reports them in `state`; the score is
+  derived from the opponent's death count, so a dropped packet can never leave
+  the two scoreboards disagreeing
+- `duel-end` returns both tabs to the lobby, as do disconnects (15s without a
+  state message) and the `LEAVE 1V1` button
 
 ## Always push changes
 

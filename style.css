@@ -109,3 +109,5 @@ body.settings-open, body.settings-open #game canvas { cursor: default; }
 /* ---- leave duel button ---- */
 #leaveDuel { display:none; position:absolute; left:24px; top:74px; pointer-events:auto; padding:8px 14px; font-size:10px; letter-spacing:.12em; background:#263566; box-shadow:none; }
 body.duel #leaveDuel { display:block; }
+
+#netStatus { float:right; font-size:9px; letter-spacing:.1em; color:#8a91ad; font-weight:800; }
