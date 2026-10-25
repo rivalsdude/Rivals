@@ -191,6 +191,8 @@ function update(dt){
   }
   netAcc+=dt;if(netAcc>=.1){netAcc=0;netSendState();}
   updateRemotePlayers(dt);
+  onlineAcc+=dt;
+  if(onlineAcc>=.5){onlineAcc=0;updateOnlineUi();}
   if(gameMode==='lobby'){lobbyListAcc+=dt;if(lobbyListAcc>=.4){lobbyListAcc=0;renderLobbyList();}}
   if(duel.active&&duel.opponent&&!duel.over){
     const opponent=remotePlayers.get(duel.opponent);
@@ -267,7 +269,7 @@ function update(dt){
 const MP_SKINS=[0x4be3a2,0xffa63d,0xb06bff,0xffd45c,0x4bc9ff,0xff8054];
 const MP_NAMES=['PLAYER','RIVAL','GHOST','NOVA','ECHO','BLAZE','VOLT','ONYX'];
 const remotePlayers=new Map();
-let netSkin=0, netName='', netAcc=0, lobbyListAcc=0;
+let netSkin=0, netName='', netAcc=0, lobbyListAcc=0, onlineAcc=0;
 
 function readSession(key){try{return sessionStorage.getItem(key);}catch(error){return null;}}
 function writeSession(key,value){try{sessionStorage.setItem(key,value);}catch(error){}}
@@ -467,7 +469,24 @@ function lobbyStatus(text){
   clearTimeout(lobbyStatus.timer);
   lobbyStatus.timer=setTimeout(()=>{element.textContent='';},5000);
 }
+function onlineTotal(){
+  const now=performance.now();
+  let total=1;
+  for(const remote of remotePlayers.values()){
+    if(now-remote.lastSeen<20000)total++;
+  }
+  return total;
+}
+function updateOnlineUi(){
+  const total=onlineTotal();
+  const hud=document.getElementById('onlineCount');
+  if(hud)hud.textContent=total+' ONLINE';
+  const badge=document.getElementById('onlineTotal');
+  if(badge)badge.textContent=String(total);
+  document.body.classList.toggle('relay-offline',net.status!=='online');
+}
 function renderLobbyList(){
+  updateOnlineUi();
   const list=document.getElementById('lobbyPlayerList');
   if(!list)return;
   const rows=['<div class="mp-row me"><span class="mp-dot" style="background:'+skinCss(netSkin)+';color:'+skinCss(netSkin)+'"></span><b>'+escapeHtml(netName)+'</b><em>YOU</em></div>'];
@@ -754,7 +773,7 @@ function dbgRefresh(){
     ['state',states],
     ['fly',player.fly?('ON · '+player.flySpeed+' u/s'):'off'],
     ['bots',bots.filter(b=>b.alive).length+' alive / '+bots.length],
-    ['players',(remotePlayers.size+1)+' in session'],
+    ['players',onlineTotal()+' online · '+remotePlayers.size+' peers'],
     ['net',net.status+' · '+(net.online?'relay':'browser only')+' · '+net.room],
     ['lock',locked?'captured':'free'],
     ['keys',Object.keys(keys).filter(k=>keys[k]).join(' ')||'-']
