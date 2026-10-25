@@ -81,3 +81,4 @@ body.dbg-open #game canvas, body.dbg-open { cursor: default; }
 #dbgPass::placeholder { color: #4c5e7c; letter-spacing: .04em; }
 .dbg-authrow { display: flex; align-items: center; gap: 8px; }
 .dbg-msg { color: #ff8095; font-size: 10px; letter-spacing: .06em; }
+body.settings-open, body.settings-open #game canvas { cursor: default; }
