@@ -82,3 +82,30 @@ body.dbg-open #game canvas, body.dbg-open { cursor: default; }
 .dbg-authrow { display: flex; align-items: center; gap: 8px; }
 .dbg-msg { color: #ff8095; font-size: 10px; letter-spacing: .06em; }
 body.settings-open, body.settings-open #game canvas { cursor: default; }
+
+/* ---- multiplayer lobby list ---- */
+#lobbyPlayers { display:block; margin-top:16px; padding-top:12px; border-top:1px solid rgba(135,163,255,.22); text-align:left; pointer-events:auto; min-width:260px; }
+#lobbyPlayers h3 { margin:0 0 8px; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:#9fb0dd; font-weight:700; }
+#lobbyPlayers h3 span { color:#6cd9ff; }
+#lobbyPlayerList { display:flex; flex-direction:column; gap:6px; }
+#start.choosing #lobbyPlayers { display:none; }
+.mp-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:8px; background:rgba(18,26,56,.8); border:1px solid rgba(135,163,255,.16); font-size:13px; }
+.mp-row.me { border-color:rgba(108,217,255,.35); }
+.mp-row b { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#eaf0ff; font-weight:700; }
+.mp-row em { font-style:normal; font-size:10px; letter-spacing:.14em; color:#8a91ad; }
+.mp-dot { flex:0 0 auto; width:10px; height:10px; border-radius:50%; box-shadow:0 0 10px currentColor; }
+.mp-duel { padding:5px 13px; font-size:11px; letter-spacing:.08em; border-radius:6px; box-shadow:none; }
+.mp-empty { margin:0; font-size:12px; color:#8a91ad; line-height:1.4; }
+#lobbyStatus { min-height:14px; margin:8px 0 0; font-size:11px; letter-spacing:.1em; color:#6cd9ff; }
+
+/* ---- 1v1 challenge popup ---- */
+#duelPrompt { display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:90; width:min(340px,calc(100vw - 40px)); padding:24px; text-align:center; color:#f4f7ff; border:1px solid rgba(135,163,255,.45); border-radius:16px; background:rgba(9,13,32,.97); box-shadow:0 24px 70px rgba(0,0,0,.7); }
+#duelPrompt.open { display:block; }
+#duelPrompt .tag { margin-bottom:12px; }
+#duelPrompt p { margin:0 0 16px; font-size:14px; color:#e6ecff; line-height:1.45; }
+#duelPrompt button { width:100%; margin-top:8px; padding:11px; }
+#duelPrompt button.secondary { background:#263566; box-shadow:none; }
+
+/* ---- leave duel button ---- */
+#leaveDuel { display:none; position:absolute; left:24px; top:74px; pointer-events:auto; padding:8px 14px; font-size:10px; letter-spacing:.12em; background:#263566; box-shadow:none; }
+body.duel #leaveDuel { display:block; }
