@@ -43,11 +43,15 @@ const weaponView=new THREE.Group(); weaponView.position.set(.42,-.38,-.72); came
 const weaponMat=mat(0x242a3c), accentMat=mat(cyan,cyan), skinMat=mat(0xc28a72), rifleBlack=mat(0x111521), rifleSteel=mat(0x30394c), rifleOrange=mat(0xa95d31), rifleWood=mat(0x854522);
 function part(geometry, material, position, rotation=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...position);m.rotation.set(...rotation);m.castShadow=true;weaponView.add(m);return m;}
 function addWeaponHands(){
-  const handTone=mat(0xc58d78);
-  part(new THREE.BoxGeometry(.22,.18,.34),handTone,[.24,-.22,-.5],[.15,0,-.15]);
-  part(new THREE.BoxGeometry(.22,.18,.34),handTone,[-.22,-.2,-.4],[.12,0,.15]);
-  part(new THREE.BoxGeometry(.16,.42,.18),handTone,[.3,-.4,-.28],[.18,0,-.12]);
-  part(new THREE.BoxGeometry(.16,.42,.18),handTone,[-.3,-.38,-.2],[.18,0,.12]);
+  if(player.slot===2)return;
+  const handTone=mat(0xc58d78), cuffTone=mat(0x293247);
+  // Forearms come up from the bottom of the screen and meet the weapon grip.
+  part(new THREE.BoxGeometry(.18,.58,.2),handTone,[.34,-.42,-.03],[.22,0,-.2]);
+  part(new THREE.BoxGeometry(.18,.58,.2),handTone,[-.34,-.4,-.18],[.2,0,.2]);
+  part(new THREE.BoxGeometry(.25,.2,.28),handTone,[.22,-.16,-.43],[.12,0,-.12]);
+  part(new THREE.BoxGeometry(.25,.2,.28),handTone,[-.2,-.12,-.62],[.1,0,.12]);
+  part(new THREE.BoxGeometry(.2,.08,.22),cuffTone,[.34,-.7,.02],[.22,0,-.2]);
+  part(new THREE.BoxGeometry(.2,.08,.22),cuffTone,[-.34,-.68,-.13],[.2,0,.2]);
 }
 function rebuildWeapon(){while(weaponView.children.length)weaponView.remove(weaponView.children[0]); weaponView.scale.setScalar(player.slot===0?.72:1); if(player.slot===0){
   // Stylized AK-like silhouette based on the reference: orange receiver/stock, dark barrel and curved magazine.
@@ -64,7 +68,7 @@ function rebuildWeapon(){while(weaponView.children.length)weaponView.remove(weap
   part(new THREE.BoxGeometry(.3,.34,.24),rifleWood,[0,-.02,.66]);
   part(new THREE.BoxGeometry(.14,.12,.16),rifleBlack,[0,.12,.02]);
   part(new THREE.BoxGeometry(.2,.06,.12),accentMat,[0,.25,-.48]);
-}else if(player.slot===1){part(new THREE.BoxGeometry(.22,.2,.6),weaponMat,[0,0,-.28]);part(new THREE.BoxGeometry(.13,.3,.16),weaponMat,[0,-.22,-.08],[.2,0,0]);part(new THREE.BoxGeometry(.08,.08,.2),accentMat,[0,.05,-.62]);part(new THREE.BoxGeometry(.07,.07,.28),weaponMat,[0,.06,-.72]);part(new THREE.BoxGeometry(.2,.05,.1),accentMat,[0,.15,-.25]);}else if(player.slot===2){part(new THREE.SphereGeometry(.2,12,8),skinMat,[0,-.04,-.25]);part(new THREE.BoxGeometry(.2,.2,.42),skinMat,[0,-.02,-.5],[.2,0,0]);part(new THREE.BoxGeometry(.12,.16,.3),skinMat,[.18,-.08,-.38],[0,.35,0]);}else if(player.slot===4){part(new THREE.BoxGeometry(.12,.75,.12),rifleBlack,[0,-.04,-.42],[0,0,.22]);part(new THREE.BoxGeometry(.7,.12,.1),rifleSteel,[0,.18,-.62],[0,.25,0]);part(new THREE.CylinderGeometry(.13,.04,.18,8),rifleBlack,[0,.18,-.95],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.13,.23,.18),rifleWood,[0,-.3,-.18]);}else if(player.slot===5){part(new THREE.BoxGeometry(.24,.25,.7),rifleSteel,[0,0,-.28]);part(new THREE.CylinderGeometry(.065,.065,1.7,10),rifleBlack,[0,.08,-1.15],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.12,.1,.18,10),rifleBlack,[0,.08,-2.02],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.1,.1,.42,10),rifleBlack,[0,.28,-.38],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.18,.14,.35),accentMat,[0,.22,-.62]);part(new THREE.BoxGeometry(.2,.5,.25),rifleBlack,[0,-.27,.05],[.15,0,0]);}else{part(new THREE.SphereGeometry(.17,12,8),mat(0x45516a),[0,0,-.25]);part(new THREE.BoxGeometry(.1,.3,.1),accentMat,[0,-.17,-.25]);part(new THREE.BoxGeometry(.08,.08,.22),mat(0x202536),[0,.06,-.44]);} addWeaponHands();}
+}else if(player.slot===1){part(new THREE.BoxGeometry(.22,.2,.6),weaponMat,[0,0,-.28]);part(new THREE.BoxGeometry(.13,.3,.16),weaponMat,[0,-.22,-.08],[.2,0,0]);part(new THREE.BoxGeometry(.08,.08,.2),accentMat,[0,.05,-.62]);part(new THREE.BoxGeometry(.07,.07,.28),weaponMat,[0,.06,-.72]);part(new THREE.BoxGeometry(.2,.05,.1),accentMat,[0,.15,-.25]);}else if(player.slot===2){part(new THREE.SphereGeometry(.2,12,8),skinMat,[0,-.04,-.25]);part(new THREE.BoxGeometry(.2,.2,.42),skinMat,[0,-.02,-.5],[.2,0,0]);part(new THREE.BoxGeometry(.12,.16,.3),skinMat,[.18,-.08,-.38],[0,.35,0]);}else if(player.slot===4){part(new THREE.BoxGeometry(.12,.75,.12),rifleBlack,[0,-.04,-.42],[0,0,.22]);part(new THREE.BoxGeometry(.7,.12,.1),rifleSteel,[0,.18,-.62],[0,.25,0]);part(new THREE.CylinderGeometry(.13,.04,.18,8),rifleBlack,[0,.18,-.95],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.13,.23,.18),rifleWood,[0,-.3,-.18]);}else if(player.slot===5){part(new THREE.BoxGeometry(.24,.25,.7),rifleSteel,[0,0,-.28]);part(new THREE.CylinderGeometry(.065,.065,1.7,10),rifleBlack,[0,.08,-1.15],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.12,.1,.18,10),rifleBlack,[0,.08,-2.02],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.1,.1,.42,10),rifleBlack,[0,.28,-.38],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.18,.14,.35),accentMat,[0,.22,-.62]);part(new THREE.BoxGeometry(.2,.5,.25),rifleBlack,[0,-.27,.05],[.15,0,0]);}else{part(new THREE.SphereGeometry(.17,12,8),mat(0x45516a),[0,0,-.25]);part(new THREE.BoxGeometry(.1,.3,.1),accentMat,[0,-.17,-.25]);part(new THREE.BoxGeometry(.08,.08,.22),mat(0x202536),[0,.06,-.44]);}if(player.slot!==2)addWeaponHands();}
 rebuildWeapon();
 const keys={}; let locked=false, shooting=false, lastShot=0; const bots=[];
 function updateAim(){ player.aiming=(player.aimHold||player.aimKey)&&player.slot!==4; document.querySelector('.hud').classList.toggle('aiming',player.aiming); }
