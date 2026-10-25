@@ -120,3 +120,14 @@ body.duel #leaveDuel { display:block; }
 body.relay-offline #onlineBadge i { background:#8a91ad; box-shadow:none; animation:none; }
 body.relay-offline #onlineBadge { color:#7b83a3; }
 @keyframes onlinePulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+
+/* ---- display name gate ---- */
+#nameGate { display:none; position:fixed; inset:0; z-index:95; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 40%, rgba(28,51,111,.7), rgba(3,5,14,.94) 65%); backdrop-filter:blur(4px); }
+#nameGate.open { display:flex; }
+.name-card { width:min(360px,calc(100vw - 40px)); padding:28px; border-radius:18px; text-align:center; color:#f4f7ff; background:rgba(10,14,34,.94); border:1px solid rgba(135,163,255,.35); box-shadow:0 24px 80px rgba(0,0,0,.6); }
+.name-card h2 { margin:0 0 6px; font-size:20px; letter-spacing:-.01em; }
+.name-card p { margin:0 0 16px; font-size:12px; color:#9fb0dd; line-height:1.45; }
+.name-card .tag { margin-bottom:12px; }
+#nameInput { width:100%; padding:12px 14px; font:inherit; font-size:16px; font-weight:700; letter-spacing:.04em; text-align:center; color:#fff; background:#131c3c; border:1px solid #3c5598; border-radius:9px; outline:none; }
+#nameInput:focus { border-color:#62cfff; box-shadow:0 0 0 3px rgba(98,207,255,.18); }
+#nameConfirm { width:100%; margin-top:14px; padding:12px; }

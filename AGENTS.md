@@ -26,6 +26,9 @@ unique `mid`, so copies arriving over two channels are only handled once.
   lose track of it
 - each tab stores `beathim-client-id`, `beathim-skin` and `beathim-name` in
   `sessionStorage`, so a reload keeps the same identity
+- on load a display-name gate (`#nameGate`) asks for a name, pre-filled with the
+  one this tab used last time; renaming re-sends `hello` + `state` so other
+  players' name tags update
 - skins are re-rolled automatically if two tabs pick the same one
 - remote players fade out after ~20s without a state message
 - shots/hits are relayed; each tab owns its own HP and respawns
