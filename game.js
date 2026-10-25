@@ -451,7 +451,6 @@ function renderLobbyList(){
     others++;
     rows.push('<div class="mp-row"><span class="mp-dot" style="background:'+skinCss(remote.skin)+';color:'+skinCss(remote.skin)+'"></span><b>'+escapeHtml(remote.name)+'</b><button class="mp-duel" data-id="'+escapeHtml(remote.id)+'">1V1</button></div>');
   }
-  if(!others)rows.push('<p class="mp-empty">No one else in the lobby yet — open this page in a second tab.</p>');
   list.innerHTML=rows.join('');
   const count=document.getElementById('lobbyCount');
   if(count)count.textContent=String(others+1);
