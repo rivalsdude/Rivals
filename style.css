@@ -117,6 +117,10 @@ body.duel #leaveDuel { display:block; }
 #onlineBadge { display:flex; align-items:center; gap:7px; margin:0 0 8px; font-size:10px; letter-spacing:.14em; font-weight:800; color:#9fb0dd; }
 #onlineBadge i { width:7px; height:7px; border-radius:50%; background:#4bf0a8; box-shadow:0 0 8px #4bf0a8; animation:onlinePulse 2s ease-in-out infinite; }
 #onlineBadge b { color:#eaf0ff; font-size:12px; }
+#lobbyCustomize { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:4px 0 10px; padding:8px; border:1px solid rgba(135,163,255,.2); border-radius:8px; background:rgba(9,13,32,.35); }
+#lobbyCustomize > b { width:100%; font-size:9px; letter-spacing:.14em; color:#6cd9ff; }
+#lobbyCustomize label { display:flex; align-items:center; gap:5px; font-size:9px; letter-spacing:.08em; color:#9fb0dd; }
+#lobbyCustomize input[type="color"] { width:25px; height:21px; padding:1px; border:1px solid #3c5598; border-radius:4px; background:#131c3c; cursor:pointer; }
 body.relay-offline #onlineBadge i { background:#8a91ad; box-shadow:none; animation:none; }
 body.relay-offline #onlineBadge { color:#7b83a3; }
 @keyframes onlinePulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }

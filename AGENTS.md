@@ -29,6 +29,9 @@ unique `mid`, so copies arriving over two channels are only handled once.
 - on load a display-name gate (`#nameGate`) asks for a name, pre-filled with the
   one this tab used last time; renaming re-sends `hello` + `state` so other
   players' name tags update
+- the lobby customization controls (`#lobbyCustomize`) let each player choose
+  a custom player-skin color and an independent name-tag color; both are saved
+  in `sessionStorage` and included in `hello` / `state`
 - skins are re-rolled automatically if two tabs pick the same one
 - remote players fade out after ~20s without a state message
 - shots/hits are relayed; each tab owns its own HP and respawns

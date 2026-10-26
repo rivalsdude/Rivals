@@ -329,15 +329,18 @@ function update(dt){
 const MP_SKINS=[0x4be3a2,0xffa63d,0xb06bff,0xffd45c,0x4bc9ff,0xff8054];
 const MP_NAMES=['PLAYER','RIVAL','GHOST','NOVA','ECHO','BLAZE','VOLT','ONYX'];
 const remotePlayers=new Map();
-let netSkin=0, netName='', netAcc=0, lobbyListAcc=0, onlineAcc=0;
+let netSkin=0, netTagColor=0, netName='', netAcc=0, lobbyListAcc=0, onlineAcc=0;
 
 function readSession(key){try{return sessionStorage.getItem(key);}catch(error){return null;}}
 function writeSession(key,value){try{sessionStorage.setItem(key,value);}catch(error){}}
 (function initIdentity(){
   const savedSkin=Number(readSession('beathim-skin'));
   netSkin=MP_SKINS.includes(savedSkin)?savedSkin:MP_SKINS[Math.floor(Math.random()*MP_SKINS.length)];
+  const savedTag=Number(readSession('beathim-tag-color'));
+  netTagColor=Number.isFinite(savedTag)&&savedTag>0?savedTag:netSkin;
   netName=readSession('beathim-name')||(MP_NAMES[Math.floor(Math.random()*MP_NAMES.length)]+' '+(10+Math.floor(Math.random()*89)));
   writeSession('beathim-skin',String(netSkin));
+  writeSession('beathim-tag-color',String(netTagColor));
   writeSession('beathim-name',netName);
 })();
 function usedSkins(){const list=[];for(const remote of remotePlayers.values())list.push(remote.skin);return list;}
@@ -374,7 +377,7 @@ function renameNameTag(sprite,text,color){
   paintNameTag(sprite.userData.canvas,text,color);
   if(sprite.material.map)sprite.material.map.needsUpdate=true;
 }
-function makeRemoteAvatar(color,name){
+function makeRemoteAvatar(color,name,tagColor=color){
   const group=new THREE.Group();
   const legMat=mat(0x20283c);
   const leftLeg=new THREE.Mesh(new THREE.BoxGeometry(.3,.85,.38),legMat);leftLeg.position.set(-.27,.43,0);leftLeg.castShadow=true;group.add(leftLeg);
@@ -392,16 +395,16 @@ function makeRemoteAvatar(color,name){
   group.add(gun);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.9,.05,8,24),mat(color,color));
   ring.rotation.x=Math.PI/2;ring.position.y=.06;group.add(ring);
-  const tag=makeNameTag(name,color);
+  const tag=makeNameTag(name,tagColor);
   group.userData.nameTag=tag;
   group.add(tag);
   group.visible=false;
   return group;
 }
 const net=createNet(handleNetMessage,{onReady:()=>{netSendHello();netSendState();}});
-function netSendHello(){net.send({t:'hello',skin:netSkin,name:netName});}
+function netSendHello(){net.send({t:'hello',skin:netSkin,tagColor:netTagColor,name:netName});}
 function netSendState(){
-  net.send({t:'state',skin:netSkin,name:netName,p:[player.pos.x,player.pos.y,player.pos.z],yaw:player.yaw,hp:player.hp,mode:gameMode,score:duel.myScore,deaths:duel.deaths,dueling:duel.active?1:0});
+  net.send({t:'state',skin:netSkin,tagColor:netTagColor,name:netName,p:[player.pos.x,player.pos.y,player.pos.z],yaw:player.yaw,hp:player.hp,mode:gameMode,score:duel.myScore,deaths:duel.deaths,dueling:duel.active?1:0});
 }
 function removeRemote(id){
   const remote=remotePlayers.get(id);
@@ -413,10 +416,11 @@ function removeRemote(id){
 function upsertRemote(message){
   if(!Array.isArray(message.p))return;
   let remote=remotePlayers.get(message.from);
-  const fresh=!remote||remote.skin!==message.skin;
+  const messageTagColor=Number.isFinite(Number(message.tagColor))?Number(message.tagColor):message.skin;
+  const fresh=!remote||remote.skin!==message.skin||remote.tagColor!==messageTagColor;
   if(fresh){
     if(remote)scene.remove(remote.group);
-    remote={id:message.from,skin:message.skin,name:message.name||'PLAYER',group:makeRemoteAvatar(message.skin,message.name||'PLAYER'),target:new THREE.Vector3(),yaw:0,hp:100,mode:message.mode||'',lastSeen:performance.now()};
+    remote={id:message.from,skin:message.skin,tagColor:messageTagColor,name:message.name||'PLAYER',group:makeRemoteAvatar(message.skin,message.name||'PLAYER',messageTagColor),target:new THREE.Vector3(),yaw:0,hp:100,mode:message.mode||'',lastSeen:performance.now()};
     scene.add(remote.group);
     remotePlayers.set(message.from,remote);
     if(message.mode===gameMode)showMessage(remote.name+' JOINED');
@@ -426,9 +430,10 @@ function upsertRemote(message){
   remote.yaw=message.yaw||0;
   remote.hp=message.hp;
   remote.mode=message.mode||'';
+  remote.tagColor=messageTagColor;
   if(!fresh&&message.name&&message.name!==remote.name){
     remote.name=message.name;
-    renameNameTag(remote.group.userData.nameTag,remote.name,remote.skin);
+    renameNameTag(remote.group.userData.nameTag,remote.name,remote.tagColor);
     renderLobbyList();
   }
   remote.score=message.score||0;
@@ -843,11 +848,35 @@ function applyLocalSkin(){
     if(localTag.material.map)localTag.material.map.dispose();
     localTag.material.dispose();
   }
-  localTag=makeNameTag(netName,netSkin);
+  localTag=makeNameTag(netName,netTagColor);
   localTag.position.y=2.85;
   lobbyAvatar.add(localTag);
 }
 applyLocalSkin();
+function colorValue(color){return '#'+Number(color).toString(16).padStart(6,'0');}
+function applyLobbyColors(){
+  const skinInput=document.getElementById('playerSkinColor');
+  const tagInput=document.getElementById('nameTagColor');
+  if(skinInput)skinInput.value=colorValue(netSkin);
+  if(tagInput)tagInput.value=colorValue(netTagColor);
+}
+function setLobbyColor(input,type){
+  const value=Number.parseInt(String(input.value).replace('#',''),16);
+  if(!Number.isFinite(value))return;
+  if(type==='skin'){
+    netSkin=value;
+    writeSession('beathim-skin',String(netSkin));
+    applyLocalSkin();
+  }else{
+    netTagColor=value;
+    writeSession('beathim-tag-color',String(netTagColor));
+    applyLocalSkin();
+  }
+  netSendHello();netSendState();renderLobbyList();
+}
+document.getElementById('playerSkinColor').oninput=e=>setLobbyColor(e.target,'skin');
+document.getElementById('nameTagColor').oninput=e=>setLobbyColor(e.target,'tag');
+applyLobbyColors();
 /* ---------------- DISPLAY NAME ---------------- */
 const nameGate=document.getElementById('nameGate');
 const nameInput=document.getElementById('nameInput');
