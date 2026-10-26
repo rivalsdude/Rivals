@@ -491,7 +491,19 @@ function handleNetMessage(message){
   }else if(message.t==='duel-accept'){
     if(message.to!==net.id)return;
     if(duel.active){if(duel.opponent!==message.from)net.send({t:'duel-end',to:message.from,reason:'busy'});return;}
-    startDuel(message.from,message.name,message.map,message.weapons);
+    // The accepting player chooses first. The challenger then chooses too,
+    // resolves a 50/50 map coin flip if needed, and sends duel-start.
+    openDuelSetup(message.from,message.name,'acceptor');
+  }else if(message.t==='duel-choice'){
+    if(message.to!==net.id||duel.active)return;
+    const choices=Array.isArray(message.weapons)?message.weapons:[];
+    duel.peerMap=DUEL_MAPS.includes(message.map)?message.map:'arena';
+    duel.peerWeapons=choices.map(Number).filter(slot=>DUEL_WEAPONS.includes(slot));
+    if(!duel.peerWeapons.length)duel.peerWeapons=[0];
+    openDuelSetup(message.from,message.name,'challenger');
+  }else if(message.t==='duel-start'){
+    if(message.to!==net.id||duel.active)return;
+    startDuel(message.from,message.name,message.map,message.acceptorWeapons||message.weapons);
   }else if(message.t==='duel-decline'){
     if(message.to!==net.id)return;
     lobbyStatus((message.name||'PLAYER')+' DECLINED');
@@ -535,7 +547,7 @@ const DUEL_TARGET=5;
 const DUEL_WEAPONS=[0,1,2,4,5];
 const DUEL_MAPS=['arena','battleground'];
 const WEAPON_SHORT={0:'AR',1:'PISTOL',2:'FISTS',3:'GRENADE',4:'SCYTHE',5:'SNIPER'};
-const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',map:'arena',weapons:[0],lastMap:'arena',lastWeapons:[0],setupTarget:null,setupName:'',setupMap:'arena',setupStep:1};
+const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',map:'arena',weapons:[0],lastMap:'arena',lastWeapons:[0],setupTarget:null,setupName:'',setupMap:'arena',setupStep:1,setupRole:'acceptor',peerMap:'arena',peerWeapons:[0],waitingChoice:false};
 function duelSpawnZ(){
   const spread=duel.map==='battleground'?24:18;
   return String(net.id)<String(duel.opponent)?spread:-spread;
@@ -613,10 +625,11 @@ function showDuelStep(step){
   document.getElementById('duelStepWeapons').hidden=step!==2;
   document.getElementById('duelSetupTitle').textContent=step===1?'CHOOSE A MAP':'CHOOSE YOUR WEAPONS';
 }
-function openDuelSetup(target,name){
-  duel.setupTarget=target;duel.setupName=name||'PLAYER';
+function openDuelSetup(target,name,role='acceptor'){
+  duel.setupTarget=target;duel.setupName=name||'PLAYER';duel.setupRole=role;
   duel.setupMap=duel.lastMap;
-  document.getElementById('duelSetupWho').textContent='VS '+(name||'PLAYER');
+  duel.setupStep=1;
+  document.getElementById('duelSetupWho').textContent='VS '+(name||'PLAYER')+(role==='challenger'?' · THEY CHOSE '+duel.peerMap.toUpperCase():'');
   markMapChoice();
   document.querySelectorAll('#duelSetup .weapon-options input').forEach(input=>{
     input.checked=duel.lastWeapons.includes(Number(input.value));
@@ -646,8 +659,19 @@ function startSetupDuel(){
   duel.lastMap=map;duel.lastWeapons=chosen;
   closeDuelSetup();
   if(!remote){lobbyStatus('THAT PLAYER IS GONE');return;}
-  net.send({t:'duel-accept',to:target,name:netName,map,weapons:chosen});
-  startDuel(target,name,map,chosen);
+  if(duel.setupRole==='acceptor'){
+    duel.peerMap=map;duel.peerWeapons=chosen;duel.waitingChoice=true;
+    net.send({t:'duel-choice',to:target,name:netName,map,weapons:chosen});
+    lobbyStatus('PVP CHOICE SENT — WAITING FOR THEIR MAP AND WEAPONS');
+    return;
+  }
+  // Both players chose independently. If maps differ, the challenger flips
+  // the coin once and sends the result so both clients use the same map.
+  const finalMap=map===duel.peerMap?map:(Math.random()<.5?map:duel.peerMap);
+  const peerLabel=finalMap===map?'YOUR MAP':'THEIR MAP';
+  net.send({t:'duel-start',to:target,name:netName,map:finalMap,challengerWeapons:chosen,acceptorWeapons:duel.peerWeapons});
+  lobbyStatus('PVP STARTING — '+finalMap.toUpperCase()+' ('+peerLabel+')');
+  startDuel(target,name,finalMap,chosen);
 }
 function hideDuelPrompt(){
   duel.pending=null;
@@ -660,6 +684,7 @@ function updateDuelHud(){
 }
 function startDuel(opponentId,opponentName,map,weapons){
   duel.active=true;duel.over=false;
+  duel.waitingChoice=false;
   duel.opponent=opponentId;duel.opponentName=opponentName||'OPPONENT';
   duel.map=DUEL_MAPS.includes(map)?map:'arena';
   const pool=(Array.isArray(weapons)?weapons:[weapons])
@@ -696,6 +721,7 @@ function loseDuel(){
 function finishDuel(){
   if(!duel.active)return;
   duel.active=false;duel.over=false;duel.opponent=null;
+  duel.waitingChoice=false;duel.setupRole='acceptor';
   duel.myScore=0;duel.theirScore=0;duel.deaths=0;
   document.body.classList.remove('duel');
   enterLobby();
