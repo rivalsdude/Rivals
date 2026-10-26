@@ -49,12 +49,13 @@ clicking a player's floating name tag in the lobby — sends a `duel-invite`
 straight away; the challenger only asks, they don't configure anything. The
 other tab gets an ACCEPT / DECLINE popup (`#duelPrompt`).
 
-- ACCEPT opens `#duelSetup`, two steps: the accepting player picks a map
-  (Arena / Battleground) and one or more weapons (AR, sniper, handgun, fists,
-  scythe), then the challenger picks their own map and weapons
-- if the map choices differ, the challenger performs one 50/50 coin flip and
-  sends the final map to both clients; each player keeps their own chosen
-  weapon pool, and number keys 1-5 switch within that pool
+- ACCEPT opens `#duelSetup` for both players at the same time; each player picks
+  their own map (Arena / Battleground) and one weapon in each category:
+  primary (AR/sniper), secondary (handgun), melee (fists/scythe), and utility
+  (grenade)
+- if the map choices differ, a deterministic 50/50 coin flip resolves the map
+  identically on both clients; each player keeps their own four-weapon pool,
+  and number keys 1-4 select primary/secondary/melee/utility
 - the match runs on the resolved map with `duel.active` on: no bots, first to 5
   kills
 - spawns are picked from the client ids (z = +18 on Arena, ±24 on Battleground)

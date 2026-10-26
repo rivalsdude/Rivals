@@ -164,7 +164,7 @@ function throwGrenade(){ if(player.grenades<=0){showMessage('NO GRENADES');retur
 function spawnTracer(){ const dir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation); const tracer=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),mat(0xfff2a8,0xffd24d)); tracer.position.copy(camera.position).addScaledVector(dir,.55); scene.add(tracer); const start=tracer.position.clone(); let t=0; const fly=()=>{t+=.06;tracer.position.copy(start).addScaledVector(dir,t*34);if(t<.32)requestAnimationFrame(fly);else scene.remove(tracer);};fly(); const flash=new THREE.Mesh(new THREE.SphereGeometry(.12,8,8),mat(0xffe78a,0xffa31a)); flash.position.set(0,.02,-.94); weaponView.add(flash);setTimeout(()=>weaponView.remove(flash),55); }
 function scytheDash(){if(player.scytheCooldown>0){showMessage('SCYTHE COOLING');return;}const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(scene.children,true);let target=null;for(const h of hits){target=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent);if(target&&target.alive)break;}const aimDir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation).normalize();if(player.grounded&&aimDir.y<0)aimDir.y=0;aimDir.normalize();const destination=target?target.root.position.clone().addScaledVector(aimDir,-2.1):player.pos.clone().addScaledVector(aimDir,7);if(target)destination.y=2.2;else destination.y=Math.max(2.2,destination.y);const old=player.pos.clone();player.pos.copy(destination);if(blocked(player.pos))player.pos.copy(old);player.scytheCooldown=1.1;weaponView.rotation.z=-.7;setTimeout(()=>weaponView.rotation.z=0,180);if(target&&target.alive&&player.pos.distanceTo(target.root.position)<3.8){damageBot(target,25);showHit(25);showMessage('SCYTHE HIT');}else showMessage(aimDir.y>.15?'UPWARD DASH':aimDir.y<-.15?'DOWNWARD DASH':'DASH');}
 function useWeapon(){ if(player.reloading)return; if(player.slot===3){weaponAnim.throw=1;throwGrenade();return;} if(player.slot===4){weaponAnim.swing=1.2;hitBot();return;} if(player.slot!==2){const ammoSlot=player.slot===5?2:player.slot;const a=player.ammo[ammoSlot];if(a.mag<=0){reloadWeapon();return;}a.mag--;updateAmmoHud();if(a.mag<=0){reloadWeapon();}weaponAnim.recoil=1;spawnTracer();}else weaponAnim.swing=1; hitBot(); }
-function doQuickMelee(){ if(gameMode==="lobby"||duel.active||player.quickMeleeTimer>0)return; const current=player.slot; const target=player.meleeChoice===4?4:2; if(current===target){weaponAnim.swing=1.2;hitBot();return;} player.prevSlot=current; player.slot=target; player.aimHold=false; player.aimKey=false; player.reloading=false; updateAim(); const w=weapons[player.slot]; weaponName.innerHTML=w.name+(player.slot===0?" <span style=\"color:#6cd9ff\">▰▰▰</span>":""); slotLabel.textContent=w.slot+" · "+(player.slot+1); updateAmmoHud(); rebuildWeapon(); showMessage(w.name); weaponAnim.swing=1.2; hitBot(); player.quickMeleeTimer=0.5; }
+function doQuickMelee(){ if(gameMode==="lobby"||player.quickMeleeTimer>0)return; const current=player.slot; const target=duel.active?duel.weapons[2]:(player.meleeChoice===4?4:2); if(current===target){weaponAnim.swing=1.2;hitBot();return;} player.prevSlot=current; player.slot=target; player.aimHold=false; player.aimKey=false; player.reloading=false; updateAim(); const w=weapons[player.slot]; weaponName.innerHTML=w.name+(player.slot===0?" <span style=\"color:#6cd9ff\">▰▰▰</span>":""); slotLabel.textContent=w.slot+" · "+(player.slot+1); updateAmmoHud(); rebuildWeapon(); showMessage(w.name); weaponAnim.swing=1.2; hitBot(); player.quickMeleeTimer=0.5; }
 function showMessage(t){ const el=document.getElementById('message');el.textContent=t;el.style.opacity=1;clearTimeout(showMessage.t);showMessage.t=setTimeout(()=>el.style.opacity=0,650); }
 const move=new THREE.Vector3(), clock=new THREE.Clock();
 document.getElementById('playMenu').onclick=()=>{document.getElementById('start').classList.add('choosing');document.getElementById('playMenu').style.display='none';document.getElementById('modePicker').style.display='block';document.getElementById('lobbyText').textContent='Choose where you want to play.';}; document.getElementById('arenaMode').onclick=()=>startGame('arena'); document.getElementById('battlegroundMode').onclick=()=>startGame('battleground'); document.getElementById('rangeMode').onclick=()=>startGame('range'); document.getElementById('loadoutMelee').onchange=e=>player.meleeChoice=Number(e.target.value);
@@ -185,7 +185,7 @@ document.getElementById('settingsButton').onclick=()=>toggleSettings(); document
 document.getElementById('sensitivity').oninput=e=>{player.sensitivity=Number(e.target.value);document.getElementById('sensitivityValue').textContent=player.sensitivity.toFixed(1);}; document.getElementById('scopeSensitivity').oninput=e=>{player.scopeSensitivity=Number(e.target.value);document.getElementById('scopeSensitivityValue').textContent=player.scopeSensitivity.toFixed(1);}; document.getElementById('crosshairColor').onchange=updateCrosshair; document.getElementById('crosshairStyle').onchange=updateCrosshair; updateCrosshair();
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement;if(gameMode==='lobby'&&!locked)document.getElementById('start').style.display='grid';});
 document.addEventListener('mousemove',e=>{if(!locked)return;const lookSensitivity=player.aiming?player.scopeSensitivity:player.sensitivity;player.yaw-=e.movementX*.0022*lookSensitivity;player.pitch-=e.movementY*.0022*lookSensitivity;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch));});
-addEventListener('keydown',e=>{if(e.target&&(e.target.id==='dbgInput'||e.target.id==='nameInput'))return;if(e.code.startsWith('Arrow'))e.preventDefault();keys[e.code]=true;if(e.code==='KeyR'&&!e.repeat)reloadWeapon();if(e.code==='KeyF'&&!e.repeat)doQuickMelee();if(e.code==='KeyP'&&!e.repeat)toggleSettings();if(e.code==='Escape'&&settings.classList.contains('open'))toggleSettings(false);if(e.code==='Escape'&&document.getElementById('duelSetup').classList.contains('open'))cancelDuelSetup();if(e.code==='Escape'&&duel.pending){const declined=duel.pending;hideDuelPrompt();net.send({t:'duel-decline',to:declined,name:netName});}if(e.code==='KeyE'&&!e.repeat&&player.slot!==4){player.aimKey=true;updateAim();}if(duel.active){const digit=/^Digit([1-6])$/.exec(e.code);if(digit){const index=Number(digit[1])-1;if(index<duel.weapons.length)forceWeapon(duel.weapons[index]);}}else{if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(1);if(e.code==='Digit3')setWeapon(2);if(e.code==='Digit4')setWeapon(3);if(e.code==='KeyG')setWeapon(3);}if(e.code==='Space'&&!player.fly){if(player.grounded){player.vertical=8.5;player.grounded=false;player.doubleJumpUsed=false;}else if(player.slot===2&&!player.doubleJumpUsed){player.vertical=8.5;player.doubleJumpUsed=true;}}if(e.code==='KeyC'&&!player.sliding&&!player.fly){const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;const sprinting=keys.ShiftLeft||keys.ShiftRight;if(moving&&sprinting&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}}}); addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE'){player.aimKey=false;updateAim();}}); addEventListener('blur',()=>{for(const k in keys)keys[k]=false;player.aimHold=false;player.aimKey=false;shooting=false;updateAim();}); addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2){if(player.slot===4)scytheDash();else{player.aimHold=true;updateAim();}}else if(e.button===0)shooting=true;}); addEventListener('mouseup',e=>{if(e.button===2&&player.slot!==4){player.aimHold=false;updateAim();}else if(e.button===0)shooting=false;}); addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('keydown',e=>{if(e.target&&(e.target.id==='dbgInput'||e.target.id==='nameInput'))return;if(e.code.startsWith('Arrow'))e.preventDefault();keys[e.code]=true;if(e.code==='KeyR'&&!e.repeat)reloadWeapon();if(e.code==='KeyF'&&!e.repeat)doQuickMelee();if(e.code==='KeyP'&&!e.repeat)toggleSettings();if(e.code==='Escape'&&settings.classList.contains('open'))toggleSettings(false);if(e.code==='Escape'&&document.getElementById('duelSetup').classList.contains('open'))cancelDuelSetup();if(e.code==='Escape'&&duel.pending){const declined=duel.pending;hideDuelPrompt();net.send({t:'duel-decline',to:declined,name:netName});}if(e.code==='KeyE'&&!e.repeat&&player.slot!==4){player.aimKey=true;updateAim();}if(duel.active){const digit=/^Digit([1-4])$/.exec(e.code);if(digit){const index=Number(digit[1])-1;if(index<duel.weapons.length)forceWeapon(duel.weapons[index]);}}else{if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(1);if(e.code==='Digit3')setWeapon(2);if(e.code==='Digit4')setWeapon(3);if(e.code==='KeyG')setWeapon(3);}if(e.code==='Space'&&!player.fly){if(player.grounded){player.vertical=8.5;player.grounded=false;player.doubleJumpUsed=false;}else if(player.slot===2&&!player.doubleJumpUsed){player.vertical=8.5;player.doubleJumpUsed=true;}}if(e.code==='KeyC'&&!player.sliding&&!player.fly){const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;const sprinting=keys.ShiftLeft||keys.ShiftRight;if(moving&&sprinting&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}}}); addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE'){player.aimKey=false;updateAim();}}); addEventListener('blur',()=>{for(const k in keys)keys[k]=false;player.aimHold=false;player.aimKey=false;shooting=false;updateAim();}); addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2){if(player.slot===4)scytheDash();else{player.aimHold=true;updateAim();}}else if(e.button===0)shooting=true;}); addEventListener('mouseup',e=>{if(e.button===2&&player.slot!==4){player.aimHold=false;updateAim();}else if(e.button===0)shooting=false;}); addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('keydown',e=>{if(e.target&&e.target.id==='dbgInput')return;if(e.code==='KeyV'&&!e.repeat&&gameMode!=='lobby'){weaponAnim.inspect=1.35;showMessage('INSPECT');}});
 function applySlidePose(dt,pose){const k=Math.min(1,dt*14);const slide=pose>0;const walk=slide?0:player.walkBlend;const swing=Math.sin(player.walkPhase)*walk;const bob=Math.abs(Math.sin(player.walkPhase))*.05*walk;const approach=(object,property,target)=>{object[property]+=(target-object[property])*k;};approach(avatarBody.position,'y',slide?.78:1.4+bob);approach(avatarBody.rotation,'x',slide?1.12:0);approach(avatarBody.rotation,'z',slide?0:swing*.06);approach(avatarHead.position,'y',slide?1.1:2.05+bob);approach(avatarHead.position,'z',slide?-.58:0);approach(avatarFace.position,'y',slide?1.13:2.08+bob);approach(avatarFace.position,'z',slide?-.94:-.365);approach(avatarLeftArm.position,'x',slide?-.58:-.63);approach(avatarLeftArm.position,'y',slide?.58:1.4);approach(avatarLeftArm.position,'z',slide?-.42:0);approach(avatarLeftArm.rotation,'x',slide?1.28:-swing*.6);approach(avatarRightArm.position,'x',slide?.5:.63);approach(avatarRightArm.position,'y',slide?.7:1.4);approach(avatarRightArm.position,'z',slide?-.72:0);approach(avatarRightArm.rotation,'x',slide?1.42:swing*.6);approach(avatarLeftLeg.position,'y',slide?.38:.43);approach(avatarLeftLeg.position,'z',slide?.48:0);approach(avatarLeftLeg.rotation,'x',slide?1.38:swing*.7);approach(avatarLeftLeg.rotation,'z',slide?.16:0);approach(avatarRightLeg.position,'y',slide?.3:.43);approach(avatarRightLeg.position,'z',slide?.62:0);approach(avatarRightLeg.rotation,'x',slide?1.48:-swing*.7);approach(avatarRightLeg.rotation,'z',slide?-.18:0);}
 function updateLobby(dt){document.querySelector('.hud').classList.add('lobby');const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown;const sprinting=keys.ShiftLeft||keys.ShiftRight;player.cameraYaw+=((keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0))*dt*2.4;player.slideCooldown=Math.max(0,player.slideCooldown-dt);if(keys.KeyC&&moving&&sprinting&&!player.sliding&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}let speed=sprinting?11:7;if(player.sliding){speed=15;player.slideTime-=dt;if(player.slideTime<=0||!moving||!sprinting)player.sliding=false;}player.crouching=player.sliding||(keys.KeyC&&!moving);if(player.crouching&&!player.sliding)speed=4;const moveLobby=new THREE.Vector3((keys.KeyD?1:0)-(keys.KeyA?1:0),0,((keys.KeyS||keys.ArrowDown)?1:0)-((keys.KeyW||keys.ArrowUp)?1:0));if(moveLobby.lengthSq()){moveLobby.normalize().applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);player.pos.addScaledVector(moveLobby,dt*speed);const want=Math.atan2(-moveLobby.x,-moveLobby.z);let diff=((want-player.avatarYaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;player.avatarYaw+=diff*Math.min(1,dt*10);}player.vertical-=22*dt;player.pos.y+=player.vertical*dt;if(player.pos.y<=2.2){player.pos.y=2.2;player.vertical=0;player.grounded=true;}player.pos.x=Math.max(-22,Math.min(22,player.pos.x));player.pos.z=Math.max(-22,Math.min(22,player.pos.z));if(moveLobby.lengthSq()&&!player.sliding)player.walkPhase+=dt*speed*1.6;player.walkBlend+=(((moving&&!player.sliding)?1:0)-player.walkBlend)*Math.min(1,dt*10);const pose=player.sliding?1:0;applySlidePose(dt,pose);lobbyAvatar.position.set(player.pos.x,player.pos.y-2.2,player.pos.z);lobbyAvatar.rotation.y=player.avatarYaw;weaponView.visible=false;const behind=new THREE.Vector3(0,3.4+(player.crouching?-.4:0),6.5).applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);camera.position.copy(player.pos).add(behind);camera.lookAt(player.pos.x,player.pos.y-.7,player.pos.z);}
@@ -494,16 +494,17 @@ function handleNetMessage(message){
   }else if(message.t==='duel-accept'){
     if(message.to!==net.id)return;
     if(duel.active){if(duel.opponent!==message.from)net.send({t:'duel-end',to:message.from,reason:'busy'});return;}
-    // The accepting player chooses first. The challenger then chooses too,
-    // resolves a 50/50 map coin flip if needed, and sends duel-start.
-    openDuelSetup(message.from,message.name,'acceptor');
+    // Both players configure their own map and weapon categories after the
+    // request is accepted.
+    openDuelSetup(message.from,message.name,'challenger');
   }else if(message.t==='duel-choice'){
     if(message.to!==net.id||duel.active)return;
     const choices=Array.isArray(message.weapons)?message.weapons:[];
     duel.peerMap=DUEL_MAPS.includes(message.map)?message.map:'arena';
     duel.peerWeapons=choices.map(Number).filter(slot=>DUEL_WEAPONS.includes(slot));
     if(!duel.peerWeapons.length)duel.peerWeapons=[0];
-    openDuelSetup(message.from,message.name,'challenger');
+    if(!duel.setupTarget)openDuelSetup(message.from,message.name,'challenger');
+    tryStartDuel();
   }else if(message.t==='duel-start'){
     if(message.to!==net.id||duel.active)return;
     startDuel(message.from,message.name,message.map,message.acceptorWeapons||message.weapons);
@@ -547,10 +548,10 @@ function updateRemotePlayers(dt){
 
 /* ---------------- PVP DUELS + LOBBY PLAYER LIST ---------------- */
 const DUEL_TARGET=5;
-const DUEL_WEAPONS=[0,1,2,4,5];
+const DUEL_WEAPONS=[0,1,2,3,4,5];
 const DUEL_MAPS=['arena','battleground'];
 const WEAPON_SHORT={0:'AR',1:'PISTOL',2:'FISTS',3:'GRENADE',4:'SCYTHE',5:'SNIPER'};
-const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',map:'arena',weapons:[0],lastMap:'arena',lastWeapons:[0],setupTarget:null,setupName:'',setupMap:'arena',setupStep:1,setupRole:'acceptor',peerMap:'arena',peerWeapons:[0],waitingChoice:false};
+const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',map:'arena',weapons:[0,1,2,3],lastMap:'arena',lastWeapons:[0,1,2,3],setupTarget:null,setupName:'',setupMap:'arena',setupStep:1,setupRole:'acceptor',peerMap:'arena',peerWeapons:[],waitingChoice:false,setupSubmitted:false};
 function duelSpawnZ(){
   const spread=duel.map==='battleground'?24:18;
   return String(net.id)<String(duel.opponent)?spread:-spread;
@@ -632,17 +633,19 @@ function openDuelSetup(target,name,role='acceptor'){
   duel.setupTarget=target;duel.setupName=name||'PLAYER';duel.setupRole=role;
   duel.setupMap=duel.lastMap;
   duel.setupStep=1;
+  duel.setupSubmitted=false;
   document.getElementById('duelSetupWho').textContent='VS '+(name||'PLAYER')+(role==='challenger'?' · THEY CHOSE '+duel.peerMap.toUpperCase():'');
   markMapChoice();
-  document.querySelectorAll('#duelSetup .weapon-options input').forEach(input=>{
-    input.checked=duel.lastWeapons.includes(Number(input.value));
-  });
+  document.getElementById('duelPrimary').value=String(duel.lastWeapons[0]??0);
+  document.getElementById('duelSecondary').value=String(duel.lastWeapons[1]??1);
+  document.getElementById('duelMelee').value=String(duel.lastWeapons[2]??2);
+  document.getElementById('duelUtility').value=String(duel.lastWeapons[3]??3);
   showDuelStep(1);
   document.getElementById('duelSetup').classList.add('open');
 }
-function closeDuelSetup(){
+function closeDuelSetup(keepTarget=false){
   document.getElementById('duelSetup').classList.remove('open');
-  duel.setupTarget=null;
+  if(!keepTarget)duel.setupTarget=null;
 }
 function cancelDuelSetup(){
   const target=duel.setupTarget;
@@ -654,27 +657,36 @@ function startSetupDuel(){
   if(!target){closeDuelSetup();return;}
   const remote=remotePlayers.get(target);
   const map=duel.setupMap==='battleground'?'battleground':'arena';
-  const picked=[...document.querySelectorAll('#duelSetup .weapon-options input:checked')]
-    .map(input=>Number(input.value))
-    .filter(slot=>DUEL_WEAPONS.includes(slot));
-  if(!picked.length){lobbyStatus('PICK AT LEAST ONE WEAPON');return;}
-  const chosen=[...new Set(picked)];
+  const chosen=[
+    Number(document.getElementById('duelPrimary').value),
+    Number(document.getElementById('duelSecondary').value),
+    Number(document.getElementById('duelMelee').value),
+    Number(document.getElementById('duelUtility').value)
+  ];
+  if(chosen.some(slot=>!DUEL_WEAPONS.includes(slot))){lobbyStatus('CHOOSE A VALID WEAPON');return;}
+  duel.setupSubmitted=true;
   duel.lastMap=map;duel.lastWeapons=chosen;
-  closeDuelSetup();
+  closeDuelSetup(true);
   if(!remote){lobbyStatus('THAT PLAYER IS GONE');return;}
-  if(duel.setupRole==='acceptor'){
-    duel.peerMap=map;duel.peerWeapons=chosen;duel.waitingChoice=true;
-    net.send({t:'duel-choice',to:target,name:netName,map,weapons:chosen});
-    lobbyStatus('PVP CHOICE SENT — WAITING FOR THEIR MAP AND WEAPONS');
-    return;
-  }
-  // Both players chose independently. If maps differ, the challenger flips
-  // the coin once and sends the result so both clients use the same map.
-  const finalMap=map===duel.peerMap?map:(Math.random()<.5?map:duel.peerMap);
-  const peerLabel=finalMap===map?'YOUR MAP':'THEIR MAP';
-  net.send({t:'duel-start',to:target,name:netName,map:finalMap,challengerWeapons:chosen,acceptorWeapons:duel.peerWeapons});
-  lobbyStatus('PVP STARTING — '+finalMap.toUpperCase()+' ('+peerLabel+')');
-  startDuel(target,name,finalMap,chosen);
+  net.send({t:'duel-choice',to:target,name:netName,map,weapons:chosen});
+  duel.waitingChoice=true;
+  lobbyStatus('PVP CHOICE SENT — WAITING FOR THEIR MAP AND WEAPONS');
+  tryStartDuel();
+}
+function duelResolvedMap(localMap,peerMap,localId,peerId){
+  if(localMap===peerMap)return localMap;
+  const firstOwn=String(localId)<String(peerId)?localMap:peerMap;
+  const seed=(String(localId)+String(peerId)+localMap+peerMap).split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0);
+  return seed%2===0?firstOwn:(firstOwn===localMap?peerMap:localMap);
+}
+function tryStartDuel(){
+  if(duel.active||!duel.setupSubmitted||!duel.setupTarget||!duel.peerWeapons?.length)return;
+  const remote=remotePlayers.get(duel.setupTarget);
+  if(!remote)return;
+  const map=duelResolvedMap(duel.setupMap,duel.peerMap,net.id,duel.setupTarget);
+  const chosen=duel.lastWeapons.slice();
+  // The selected list is captured before the setup card closes.
+  startDuel(duel.setupTarget,duel.setupName,map,chosen);
 }
 function hideDuelPrompt(){
   duel.pending=null;
@@ -688,6 +700,7 @@ function updateDuelHud(){
 function startDuel(opponentId,opponentName,map,weapons){
   duel.active=true;duel.over=false;
   duel.waitingChoice=false;
+  duel.setupTarget=null;duel.setupSubmitted=false;
   duel.opponent=opponentId;duel.opponentName=opponentName||'OPPONENT';
   duel.map=DUEL_MAPS.includes(map)?map:'arena';
   const pool=(Array.isArray(weapons)?weapons:[weapons])
@@ -764,7 +777,8 @@ document.getElementById('duelAccept').onclick=()=>{
     return;
   }
   hideDuelPrompt();
-  openDuelSetup(target,name);
+  net.send({t:'duel-accept',to:target,name:netName});
+  openDuelSetup(target,name,'acceptor');
 };
 document.getElementById('duelNext').onclick=()=>showDuelStep(2);
 document.getElementById('duelBack').onclick=()=>showDuelStep(1);

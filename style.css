@@ -149,6 +149,7 @@ body.relay-offline #onlineBadge { color:#7b83a3; }
 .weapon-options label { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:9px; background:#131c3c; border:1px solid #2c3f74; font-size:12px; font-weight:700; color:#dfe7ff; cursor:pointer; }
 .weapon-options input { width:16px; height:16px; accent-color:#62cfff; }
 .weapon-options label:has(input:checked) { border-color:#62cfff; background:#1b2f66; }
+.weapon-options label select { display:block; width:100%; margin-top:6px; padding:7px; color:#fff; background:#101a36; border:1px solid #3c5598; border-radius:6px; font:inherit; font-size:12px; }
 #duelSetupWho { margin:0 0 14px; font-size:11px; letter-spacing:.14em; font-weight:800; color:#6cd9ff; }
 
 
