@@ -208,7 +208,10 @@ function aimbotPoint(){
       // used to make the trace silently skip the opponent.
       if(!remote||!remote.target?.isVector3||remote.mode!==gameMode||performance.now()-remote.lastSeen>20000)continue;
       const target=remote.target.clone();
-      target.y+=1.7;
+      // Network positions are the player's world/eye position (normally y=2.2),
+      // not the remote avatar group's feet. Adding 1.7 here aimed well above
+      // the head; a small offset keeps the trace on the player's upper body.
+      target.y+=.25;
       const d=target.distanceToSquared(eye);
       if(d>90*90||d>=best)continue;
       best=d;point=target;
