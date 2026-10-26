@@ -149,7 +149,7 @@ function startGame(mode){
   lobbyGroup.visible=false;
   bots.forEach(b=>{b.root.visible=!duel.active;});
   if(mode==='range'){bots.forEach(b=>{if(b.team!=='target')b.root.visible=false;});createRangeTargets();showMessage('SHOOTING RANGE');}
-  else if(duel.active){forceWeapon(duel.weapon);showMessage('PVP · '+(mode==='battleground'?'BATTLEGROUND':'ARENA'));}
+  else if(duel.active){forceWeapon(duel.weapons[0]);showMessage('PVP · '+(mode==='battleground'?'BATTLEGROUND':'ARENA'));}
   else showMessage(mode==='arena'?'ARENA':'BATTLEGROUND');
   document.getElementById('start').style.display='none';
   renderer.domElement.requestPointerLock();
@@ -184,7 +184,7 @@ document.getElementById('settingsButton').onclick=()=>toggleSettings(); document
 document.getElementById('sensitivity').oninput=e=>{player.sensitivity=Number(e.target.value);document.getElementById('sensitivityValue').textContent=player.sensitivity.toFixed(1);}; document.getElementById('scopeSensitivity').oninput=e=>{player.scopeSensitivity=Number(e.target.value);document.getElementById('scopeSensitivityValue').textContent=player.scopeSensitivity.toFixed(1);}; document.getElementById('crosshairColor').onchange=updateCrosshair; document.getElementById('crosshairStyle').onchange=updateCrosshair; updateCrosshair();
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement;if(gameMode==='lobby'&&!locked)document.getElementById('start').style.display='grid';});
 document.addEventListener('mousemove',e=>{if(!locked)return;const lookSensitivity=player.aiming?player.scopeSensitivity:player.sensitivity;player.yaw-=e.movementX*.0022*lookSensitivity;player.pitch-=e.movementY*.0022*lookSensitivity;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch));});
-addEventListener('keydown',e=>{if(e.target&&(e.target.id==='dbgInput'||e.target.id==='nameInput'))return;if(e.code.startsWith('Arrow'))e.preventDefault();keys[e.code]=true;if(e.code==='KeyR'&&!e.repeat)reloadWeapon();if(e.code==='KeyF'&&!e.repeat)doQuickMelee();if(e.code==='KeyP'&&!e.repeat)toggleSettings();if(e.code==='Escape'&&settings.classList.contains('open'))toggleSettings(false);if(e.code==='Escape'&&document.getElementById('duelSetup').classList.contains('open'))closeDuelSetup();if(e.code==='Escape'&&duel.pending){const declined=duel.pending;hideDuelPrompt();net.send({t:'duel-decline',to:declined,name:netName});}if(e.code==='KeyE'&&!e.repeat&&player.slot!==4){player.aimKey=true;updateAim();}if(!duel.active){if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(1);if(e.code==='Digit3')setWeapon(2);if(e.code==='Digit4')setWeapon(3);if(e.code==='KeyG')setWeapon(3);}if(e.code==='Space'&&!player.fly){if(player.grounded){player.vertical=8.5;player.grounded=false;player.doubleJumpUsed=false;}else if(player.slot===2&&!player.doubleJumpUsed){player.vertical=8.5;player.doubleJumpUsed=true;}}if((e.code==='KeyC'||e.code==='ControlLeft')&&!player.sliding&&!player.fly){const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;const sprinting=keys.ShiftLeft||keys.ShiftRight;if(moving&&sprinting&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}}}); addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE'){player.aimKey=false;updateAim();}}); addEventListener('blur',()=>{for(const k in keys)keys[k]=false;player.aimHold=false;player.aimKey=false;shooting=false;updateAim();}); addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2){if(player.slot===4)scytheDash();else{player.aimHold=true;updateAim();}}else if(e.button===0)shooting=true;}); addEventListener('mouseup',e=>{if(e.button===2&&player.slot!==4){player.aimHold=false;updateAim();}else if(e.button===0)shooting=false;}); addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('keydown',e=>{if(e.target&&(e.target.id==='dbgInput'||e.target.id==='nameInput'))return;if(e.code.startsWith('Arrow'))e.preventDefault();keys[e.code]=true;if(e.code==='KeyR'&&!e.repeat)reloadWeapon();if(e.code==='KeyF'&&!e.repeat)doQuickMelee();if(e.code==='KeyP'&&!e.repeat)toggleSettings();if(e.code==='Escape'&&settings.classList.contains('open'))toggleSettings(false);if(e.code==='Escape'&&document.getElementById('duelSetup').classList.contains('open'))cancelDuelSetup();if(e.code==='Escape'&&duel.pending){const declined=duel.pending;hideDuelPrompt();net.send({t:'duel-decline',to:declined,name:netName});}if(e.code==='KeyE'&&!e.repeat&&player.slot!==4){player.aimKey=true;updateAim();}if(duel.active){const digit=/^Digit([1-6])$/.exec(e.code);if(digit){const index=Number(digit[1])-1;if(index<duel.weapons.length)forceWeapon(duel.weapons[index]);}}else{if(e.code==='Digit1')setWeapon(0);if(e.code==='Digit2')setWeapon(1);if(e.code==='Digit3')setWeapon(2);if(e.code==='Digit4')setWeapon(3);if(e.code==='KeyG')setWeapon(3);}if(e.code==='Space'&&!player.fly){if(player.grounded){player.vertical=8.5;player.grounded=false;player.doubleJumpUsed=false;}else if(player.slot===2&&!player.doubleJumpUsed){player.vertical=8.5;player.doubleJumpUsed=true;}}if((e.code==='KeyC'||e.code==='ControlLeft')&&!player.sliding&&!player.fly){const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD;const sprinting=keys.ShiftLeft||keys.ShiftRight;if(moving&&sprinting&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}}}); addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE'){player.aimKey=false;updateAim();}}); addEventListener('blur',()=>{for(const k in keys)keys[k]=false;player.aimHold=false;player.aimKey=false;shooting=false;updateAim();}); addEventListener('mousedown',e=>{if(!locked)return;if(e.button===2){if(player.slot===4)scytheDash();else{player.aimHold=true;updateAim();}}else if(e.button===0)shooting=true;}); addEventListener('mouseup',e=>{if(e.button===2&&player.slot!==4){player.aimHold=false;updateAim();}else if(e.button===0)shooting=false;}); addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('keydown',e=>{if(e.target&&e.target.id==='dbgInput')return;if(e.code==='KeyV'&&!e.repeat&&gameMode!=='lobby'){weaponAnim.inspect=1.35;showMessage('INSPECT');}});
 function applySlidePose(dt,pose){const k=Math.min(1,dt*14);const slide=pose>0;const walk=slide?0:player.walkBlend;const swing=Math.sin(player.walkPhase)*walk;const bob=Math.abs(Math.sin(player.walkPhase))*.05*walk;const approach=(object,property,target)=>{object[property]+=(target-object[property])*k;};approach(avatarBody.position,'y',slide?.78:1.4+bob);approach(avatarBody.rotation,'x',slide?1.12:0);approach(avatarBody.rotation,'z',slide?0:swing*.06);approach(avatarHead.position,'y',slide?1.1:2.05+bob);approach(avatarHead.position,'z',slide?-.58:0);approach(avatarFace.position,'y',slide?1.13:2.08+bob);approach(avatarFace.position,'z',slide?-.94:-.365);approach(avatarLeftArm.position,'x',slide?-.58:-.63);approach(avatarLeftArm.position,'y',slide?.58:1.4);approach(avatarLeftArm.position,'z',slide?-.42:0);approach(avatarLeftArm.rotation,'x',slide?1.28:-swing*.6);approach(avatarRightArm.position,'x',slide?.5:.63);approach(avatarRightArm.position,'y',slide?.7:1.4);approach(avatarRightArm.position,'z',slide?-.72:0);approach(avatarRightArm.rotation,'x',slide?1.42:swing*.6);approach(avatarLeftLeg.position,'y',slide?.38:.43);approach(avatarLeftLeg.position,'z',slide?.48:0);approach(avatarLeftLeg.rotation,'x',slide?1.38:swing*.7);approach(avatarLeftLeg.rotation,'z',slide?.16:0);approach(avatarRightLeg.position,'y',slide?.3:.43);approach(avatarRightLeg.position,'z',slide?.62:0);approach(avatarRightLeg.rotation,'x',slide?1.48:-swing*.7);approach(avatarRightLeg.rotation,'z',slide?-.18:0);}
 function updateLobby(dt){document.querySelector('.hud').classList.add('lobby');const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown;const sprinting=keys.ShiftLeft||keys.ShiftRight;player.cameraYaw+=((keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0))*dt*2.4;player.slideCooldown=Math.max(0,player.slideCooldown-dt);if((keys.KeyC||keys.KeyControl)&&moving&&sprinting&&!player.sliding&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}let speed=sprinting?11:7;if(player.sliding){speed=15;player.slideTime-=dt;if(player.slideTime<=0||!moving||!sprinting)player.sliding=false;}player.crouching=player.sliding||((keys.KeyC||keys.ControlLeft)&&!moving);if(player.crouching&&!player.sliding)speed=4;const moveLobby=new THREE.Vector3((keys.KeyD?1:0)-(keys.KeyA?1:0),0,((keys.KeyS||keys.ArrowDown)?1:0)-((keys.KeyW||keys.ArrowUp)?1:0));if(moveLobby.lengthSq()){moveLobby.normalize().applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);player.pos.addScaledVector(moveLobby,dt*speed);const want=Math.atan2(-moveLobby.x,-moveLobby.z);let diff=((want-player.avatarYaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;player.avatarYaw+=diff*Math.min(1,dt*10);}player.vertical-=22*dt;player.pos.y+=player.vertical*dt;if(player.pos.y<=2.2){player.pos.y=2.2;player.vertical=0;player.grounded=true;}player.pos.x=Math.max(-22,Math.min(22,player.pos.x));player.pos.z=Math.max(-22,Math.min(22,player.pos.z));if(moveLobby.lengthSq()&&!player.sliding)player.walkPhase+=dt*speed*1.6;player.walkBlend+=(((moving&&!player.sliding)?1:0)-player.walkBlend)*Math.min(1,dt*10);const pose=player.sliding?1:0;applySlidePose(dt,pose);lobbyAvatar.position.set(player.pos.x,player.pos.y-2.2,player.pos.z);lobbyAvatar.rotation.y=player.avatarYaw;weaponView.visible=false;const behind=new THREE.Vector3(0,3.4+(player.crouching?-.4:0),6.5).applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);camera.position.copy(player.pos).add(behind);camera.lookAt(player.pos.x,player.pos.y-.7,player.pos.z);}
@@ -410,7 +410,7 @@ function applyRemoteHit(message){
     hpTextEl.textContent=100;
     showMessage('KILLED BY '+(message.name||'PLAYER'));
     if(duel.active){
-      forceWeapon(duel.weapon);
+      if(!duel.weapons.includes(player.slot))forceWeapon(duel.weapons[0]);
       duel.deaths++;
       netSendState();
       if(duel.deaths>=DUEL_TARGET)loseDuel();
@@ -442,12 +442,12 @@ function handleNetMessage(message){
     if(message.to!==net.id)return;
     if(duel.pending===message.from)return;
     if(duel.active||duel.pending){net.send({t:'duel-decline',to:message.from,name:netName});return;}
-    showDuelPrompt(message.from,message.name,message.map,message.weapon);
+    showDuelPrompt(message.from,message.name);
     lobbyStatus((message.name||'PLAYER')+' CHALLENGES YOU');
   }else if(message.t==='duel-accept'){
     if(message.to!==net.id)return;
     if(duel.active){if(duel.opponent!==message.from)net.send({t:'duel-end',to:message.from,reason:'busy'});return;}
-    startDuel(message.from,message.name,message.map,message.weapon);
+    startDuel(message.from,message.name,message.map,message.weapons);
   }else if(message.t==='duel-decline'){
     if(message.to!==net.id)return;
     lobbyStatus((message.name||'PLAYER')+' DECLINED');
@@ -490,7 +490,8 @@ function updateRemotePlayers(dt){
 const DUEL_TARGET=5;
 const DUEL_WEAPONS=[0,1,2,4,5];
 const DUEL_MAPS=['arena','battleground'];
-const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',pendingMap:'arena',pendingWeapon:0,map:'arena',weapon:0,lastMap:'arena',lastWeapon:0,setupTarget:null};
+const WEAPON_SHORT={0:'AR',1:'PISTOL',2:'FISTS',3:'GRENADE',4:'SCYTHE',5:'SNIPER'};
+const duel={active:false,over:false,opponent:null,opponentName:'',myScore:0,theirScore:0,deaths:0,pending:null,pendingName:'',map:'arena',weapons:[0],lastMap:'arena',lastWeapons:[0],setupTarget:null,setupName:'',setupMap:'arena',setupStep:1};
 function duelSpawnZ(){
   const spread=duel.map==='battleground'?24:18;
   return String(net.id)<String(duel.opponent)?spread:-spread;
@@ -548,39 +549,61 @@ function inviteDuel(id){
   const remote=remotePlayers.get(id);
   if(!remote||id===net.id)return;
   if(duel.active){lobbyStatus('FINISH YOUR PVP FIRST');return;}
-  duel.setupTarget=id;
-  const who=document.getElementById('duelSetupName');
-  if(who)who.textContent=remote.name;
-  document.getElementById('duelMap').value=duel.lastMap;
-  document.getElementById('duelWeapon').value=String(duel.lastWeapon);
+  net.send({t:'duel-invite',to:id,name:netName,skin:netSkin});
+  lobbyStatus('PVP REQUEST SENT TO '+remote.name);
+}
+function showDuelPrompt(fromId,name){
+  if(duel.pending)return;
+  duel.pending=fromId;duel.pendingName=name||'PLAYER';
+  document.getElementById('duelPromptText').textContent=(name||'PLAYER')+' wants to PVP. First to '+DUEL_TARGET+' wins.';
+  document.getElementById('duelPrompt').classList.add('open');
+}
+function markMapChoice(){
+  document.querySelectorAll('#duelSetup .map-option').forEach(button=>{
+    button.classList.toggle('selected',button.dataset.map===duel.setupMap);
+  });
+}
+function showDuelStep(step){
+  duel.setupStep=step;
+  document.getElementById('duelStepMap').hidden=step!==1;
+  document.getElementById('duelStepWeapons').hidden=step!==2;
+  document.getElementById('duelSetupTitle').textContent=step===1?'CHOOSE A MAP':'CHOOSE YOUR WEAPONS';
+}
+function openDuelSetup(target,name){
+  duel.setupTarget=target;duel.setupName=name||'PLAYER';
+  duel.setupMap=duel.lastMap;
+  document.getElementById('duelSetupWho').textContent='VS '+(name||'PLAYER');
+  markMapChoice();
+  document.querySelectorAll('#duelSetup .weapon-options input').forEach(input=>{
+    input.checked=duel.lastWeapons.includes(Number(input.value));
+  });
+  showDuelStep(1);
   document.getElementById('duelSetup').classList.add('open');
 }
 function closeDuelSetup(){
   document.getElementById('duelSetup').classList.remove('open');
   duel.setupTarget=null;
 }
-function sendDuelInvite(){
-  const id=duel.setupTarget;
-  const remote=id?remotePlayers.get(id):null;
-  if(!remote){closeDuelSetup();lobbyStatus('THAT PLAYER IS GONE');return;}
-  if(duel.active){closeDuelSetup();lobbyStatus('FINISH YOUR PVP FIRST');return;}
-  const map=document.getElementById('duelMap').value==='battleground'?'battleground':'arena';
-  const picked=Number(document.getElementById('duelWeapon').value);
-  const weapon=DUEL_WEAPONS.includes(picked)?picked:0;
-  duel.lastMap=map;duel.lastWeapon=weapon;
+function cancelDuelSetup(){
+  const target=duel.setupTarget;
   closeDuelSetup();
-  net.send({t:'duel-invite',to:id,name:netName,skin:netSkin,map,weapon});
-  lobbyStatus('PVP INVITE SENT TO '+remote.name);
+  if(target)net.send({t:'duel-decline',to:target,name:netName});
 }
-function showDuelPrompt(fromId,name,map,weapon){
-  if(duel.pending)return;
-  duel.pending=fromId;duel.pendingName=name||'PLAYER';
-  duel.pendingMap=DUEL_MAPS.includes(map)?map:'arena';
-  const picked=Number(weapon);
-  duel.pendingWeapon=DUEL_WEAPONS.includes(picked)?picked:0;
-  const where=duel.pendingMap==='battleground'?'BATTLEGROUND':'ARENA';
-  document.getElementById('duelPromptText').textContent=(name||'PLAYER')+' wants to PVP on '+where+' with the '+weapons[duel.pendingWeapon].name+'. First to '+DUEL_TARGET+' wins.';
-  document.getElementById('duelPrompt').classList.add('open');
+function startSetupDuel(){
+  const target=duel.setupTarget, name=duel.setupName;
+  if(!target){closeDuelSetup();return;}
+  const remote=remotePlayers.get(target);
+  const map=duel.setupMap==='battleground'?'battleground':'arena';
+  const picked=[...document.querySelectorAll('#duelSetup .weapon-options input:checked')]
+    .map(input=>Number(input.value))
+    .filter(slot=>DUEL_WEAPONS.includes(slot));
+  if(!picked.length){lobbyStatus('PICK AT LEAST ONE WEAPON');return;}
+  const chosen=[...new Set(picked)];
+  duel.lastMap=map;duel.lastWeapons=chosen;
+  closeDuelSetup();
+  if(!remote){lobbyStatus('THAT PLAYER IS GONE');return;}
+  net.send({t:'duel-accept',to:target,name:netName,map,weapons:chosen});
+  startDuel(target,name,map,chosen);
 }
 function hideDuelPrompt(){
   duel.pending=null;
@@ -591,13 +614,15 @@ function updateDuelHud(){
   blueScoreEl.textContent=duel.myScore;
   redScoreEl.textContent=duel.theirScore;
 }
-function startDuel(opponentId,opponentName,map,weapon){
+function startDuel(opponentId,opponentName,map,weapons){
   duel.active=true;duel.over=false;
   duel.opponent=opponentId;duel.opponentName=opponentName||'OPPONENT';
   duel.map=DUEL_MAPS.includes(map)?map:'arena';
-  const picked=Number(weapon);
-  duel.weapon=DUEL_WEAPONS.includes(picked)?picked:0;
-  duel.lastMap=duel.map;duel.lastWeapon=duel.weapon;
+  const pool=(Array.isArray(weapons)?weapons:[weapons])
+    .map(Number)
+    .filter(slot=>DUEL_WEAPONS.includes(slot));
+  duel.weapons=pool.length?[...new Set(pool)]:[0];
+  duel.lastMap=duel.map;duel.lastWeapons=duel.weapons.slice();
   duel.myScore=0;duel.theirScore=0;duel.deaths=0;
   const opponent=remotePlayers.get(opponentId);
   if(opponent)opponent.deaths=0;
@@ -605,7 +630,7 @@ function startDuel(opponentId,opponentName,map,weapon){
   document.body.classList.add('duel');
   startGame(duel.map);
   const info=document.getElementById('roundInfo');
-  if(info)info.innerHTML='PVP<br><span style="color:#ffd45c">FIRST TO '+DUEL_TARGET+' · '+duel.map.toUpperCase()+' · '+weapons[duel.weapon].name+'</span>';
+  if(info)info.innerHTML='PVP<br><span style="color:#ffd45c">FIRST TO '+DUEL_TARGET+' · '+duel.map.toUpperCase()+' · '+duel.weapons.map(slot=>WEAPON_SHORT[slot]).join(' + ')+'</span>';
   updateDuelHud();
   showMessage('PVP VS '+duel.opponentName);
   netSendState();
@@ -657,7 +682,7 @@ function enterLobby(){
   netSendState();
 }
 document.getElementById('duelAccept').onclick=()=>{
-  const target=duel.pending, name=duel.pendingName, map=duel.pendingMap, weapon=duel.pendingWeapon;
+  const target=duel.pending, name=duel.pendingName;
   if(!target)return;
   const remote=remotePlayers.get(target);
   if(!remote||performance.now()-remote.lastSeen>8000){
@@ -666,11 +691,15 @@ document.getElementById('duelAccept').onclick=()=>{
     return;
   }
   hideDuelPrompt();
-  net.send({t:'duel-accept',to:target,name:netName,map,weapon});
-  startDuel(target,name,map,weapon);
+  openDuelSetup(target,name);
 };
-document.getElementById('duelSend').onclick=sendDuelInvite;
-document.getElementById('duelCancel').onclick=closeDuelSetup;
+document.getElementById('duelNext').onclick=()=>showDuelStep(2);
+document.getElementById('duelBack').onclick=()=>showDuelStep(1);
+document.getElementById('duelStart').onclick=startSetupDuel;
+document.getElementById('duelCancel').onclick=cancelDuelSetup;
+document.querySelectorAll('#duelSetup .map-option').forEach(button=>{
+  button.onclick=()=>{duel.setupMap=button.dataset.map;markMapChoice();};
+});
 document.getElementById('duelDecline').onclick=()=>{
   const target=duel.pending;
   hideDuelPrompt();

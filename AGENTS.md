@@ -45,14 +45,16 @@ or `LOCAL ONLY` (relay unreachable — only tabs in the same browser will see yo
 ### PVP duels
 
 The lobby shows a player list (`#lobbyPlayerList`). Clicking `PVP` there — or
-clicking a player's floating name tag in the lobby — opens a setup card
-(`#duelSetup`) where the challenger picks the map (Arena / Battleground) and the
-weapon (AR, sniper, handgun, fists, scythe). Sending it posts a `duel-invite`
-that carries both choices; the other tab gets an ACCEPT / DECLINE popup
-(`#duelPrompt`) that spells them out.
+clicking a player's floating name tag in the lobby — sends a `duel-invite`
+straight away; the challenger only asks, they don't configure anything. The
+other tab gets an ACCEPT / DECLINE popup (`#duelPrompt`).
 
-- accepting starts the chosen map as `gameMode`, with `duel.active` on: no
-  bots, no weapon switching (1-4 / G / quick melee are locked), first to 5 kills
+- ACCEPT opens `#duelSetup`, two steps: pick the map (Arena / Battleground),
+  then pick one or more weapons (AR, sniper, handgun, fists, scythe)
+- `duel-accept` carries `map` + `weapons`, so both tabs play the same map with
+  the same pool; number keys 1-5 switch between the chosen weapons
+- the match runs on the chosen map with `duel.active` on: no bots, first to 5
+  kills
 - spawns are picked from the client ids (z = +18 on Arena, ±24 on Battleground)
   so the two players always start at opposite ends facing each other
 - each side counts its own deaths and reports them in `state`; the score is
