@@ -74,6 +74,7 @@ function rebuildWeapon(){while(weaponView.children.length)weaponView.remove(weap
 }else if(player.slot===1){part(new THREE.BoxGeometry(.22,.2,.6),weaponMat,[0,0,-.28]);part(new THREE.BoxGeometry(.13,.3,.16),weaponMat,[0,-.22,-.08],[.2,0,0]);part(new THREE.BoxGeometry(.08,.08,.2),accentMat,[0,.05,-.62]);part(new THREE.BoxGeometry(.07,.07,.28),weaponMat,[0,.06,-.72]);part(new THREE.BoxGeometry(.2,.05,.1),accentMat,[0,.15,-.25]);}else if(player.slot===2){part(new THREE.BoxGeometry(.3,.26,.44),skinMat,[.5,-.26,-.46]);weaponView.position.x=0;}else if(player.slot===4){part(new THREE.BoxGeometry(.12,.75,.12),rifleBlack,[0,-.04,-.42],[0,0,.22]);part(new THREE.BoxGeometry(.7,.12,.1),rifleSteel,[0,.18,-.62],[0,.25,0]);part(new THREE.CylinderGeometry(.13,.04,.18,8),rifleBlack,[0,.18,-.95],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.13,.23,.18),rifleWood,[0,-.3,-.18]);}else if(player.slot===5){part(new THREE.BoxGeometry(.24,.25,.7),rifleSteel,[0,0,-.28]);part(new THREE.CylinderGeometry(.065,.065,1.7,10),rifleBlack,[0,.08,-1.15],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.12,.1,.18,10),rifleBlack,[0,.08,-2.02],[Math.PI/2,0,0]);part(new THREE.CylinderGeometry(.1,.1,.42,10),rifleBlack,[0,.28,-.38],[Math.PI/2,0,0]);part(new THREE.BoxGeometry(.18,.14,.35),accentMat,[0,.22,-.62]);part(new THREE.BoxGeometry(.2,.5,.25),rifleBlack,[0,-.27,.05],[.15,0,0]);}else{part(new THREE.SphereGeometry(.17,12,8),mat(0x45516a),[0,0,-.25]);part(new THREE.BoxGeometry(.1,.3,.1),accentMat,[0,-.17,-.25]);part(new THREE.BoxGeometry(.08,.08,.22),mat(0x202536),[0,.06,-.44]);}if(player.slot===0||player.slot===1||player.slot===5)addWeaponHands();}
 rebuildWeapon();
 const keys={}; let locked=false, shooting=false, lastShot=0; const bots=[];
+const aimbot={enabled:false,target:'enemies',speed:8};
 function updateAim(){ player.aiming=(player.aimHold||player.aimKey)&&player.slot!==4; document.querySelector('.hud').classList.toggle('aiming',player.aiming); }
 function forceWeapon(slot){
   player.slot=slot;player.aimHold=false;player.aimKey=false;player.reloading=false;updateAim();
@@ -188,6 +189,44 @@ addEventListener('keydown',e=>{if(e.target&&(e.target.id==='dbgInput'||e.target.
 addEventListener('keydown',e=>{if(e.target&&e.target.id==='dbgInput')return;if(e.code==='KeyV'&&!e.repeat&&gameMode!=='lobby'){weaponAnim.inspect=1.35;showMessage('INSPECT');}});
 function applySlidePose(dt,pose){const k=Math.min(1,dt*14);const slide=pose>0;const walk=slide?0:player.walkBlend;const swing=Math.sin(player.walkPhase)*walk;const bob=Math.abs(Math.sin(player.walkPhase))*.05*walk;const approach=(object,property,target)=>{object[property]+=(target-object[property])*k;};approach(avatarBody.position,'y',slide?.78:1.4+bob);approach(avatarBody.rotation,'x',slide?1.12:0);approach(avatarBody.rotation,'z',slide?0:swing*.06);approach(avatarHead.position,'y',slide?1.1:2.05+bob);approach(avatarHead.position,'z',slide?-.58:0);approach(avatarFace.position,'y',slide?1.13:2.08+bob);approach(avatarFace.position,'z',slide?-.94:-.365);approach(avatarLeftArm.position,'x',slide?-.58:-.63);approach(avatarLeftArm.position,'y',slide?.58:1.4);approach(avatarLeftArm.position,'z',slide?-.42:0);approach(avatarLeftArm.rotation,'x',slide?1.28:-swing*.6);approach(avatarRightArm.position,'x',slide?.5:.63);approach(avatarRightArm.position,'y',slide?.7:1.4);approach(avatarRightArm.position,'z',slide?-.72:0);approach(avatarRightArm.rotation,'x',slide?1.42:swing*.6);approach(avatarLeftLeg.position,'y',slide?.38:.43);approach(avatarLeftLeg.position,'z',slide?.48:0);approach(avatarLeftLeg.rotation,'x',slide?1.38:swing*.7);approach(avatarLeftLeg.rotation,'z',slide?.16:0);approach(avatarRightLeg.position,'y',slide?.3:.43);approach(avatarRightLeg.position,'z',slide?.62:0);approach(avatarRightLeg.rotation,'x',slide?1.48:-swing*.7);approach(avatarRightLeg.rotation,'z',slide?-.18:0);}
 function updateLobby(dt){document.querySelector('.hud').classList.add('lobby');const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown;const sprinting=keys.ShiftLeft||keys.ShiftRight;player.cameraYaw+=((keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0))*dt*2.4;player.slideCooldown=Math.max(0,player.slideCooldown-dt);if((keys.KeyC||keys.KeyControl)&&moving&&sprinting&&!player.sliding&&player.slideCooldown<=0){player.sliding=true;player.slideTime=.65;player.slideCooldown=1.05;}let speed=sprinting?11:7;if(player.sliding){speed=15;player.slideTime-=dt;if(player.slideTime<=0||!moving||!sprinting)player.sliding=false;}player.crouching=player.sliding||((keys.KeyC||keys.ControlLeft)&&!moving);if(player.crouching&&!player.sliding)speed=4;const moveLobby=new THREE.Vector3((keys.KeyD?1:0)-(keys.KeyA?1:0),0,((keys.KeyS||keys.ArrowDown)?1:0)-((keys.KeyW||keys.ArrowUp)?1:0));if(moveLobby.lengthSq()){moveLobby.normalize().applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);player.pos.addScaledVector(moveLobby,dt*speed);const want=Math.atan2(-moveLobby.x,-moveLobby.z);let diff=((want-player.avatarYaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;player.avatarYaw+=diff*Math.min(1,dt*10);}player.vertical-=22*dt;player.pos.y+=player.vertical*dt;if(player.pos.y<=2.2){player.pos.y=2.2;player.vertical=0;player.grounded=true;}player.pos.x=Math.max(-22,Math.min(22,player.pos.x));player.pos.z=Math.max(-22,Math.min(22,player.pos.z));if(moveLobby.lengthSq()&&!player.sliding)player.walkPhase+=dt*speed*1.6;player.walkBlend+=(((moving&&!player.sliding)?1:0)-player.walkBlend)*Math.min(1,dt*10);const pose=player.sliding?1:0;applySlidePose(dt,pose);lobbyAvatar.position.set(player.pos.x,player.pos.y-2.2,player.pos.z);lobbyAvatar.rotation.y=player.avatarYaw;weaponView.visible=false;const behind=new THREE.Vector3(0,3.4+(player.crouching?-.4:0),6.5).applyAxisAngle(new THREE.Vector3(0,1,0),player.cameraYaw);camera.position.copy(player.pos).add(behind);camera.lookAt(player.pos.x,player.pos.y-.7,player.pos.z);}
+function aimbotPoint(){
+  const eye=player.pos;
+  let point=null,best=Infinity;
+  if(aimbot.target==='enemies'||aimbot.target==='both'){
+    for(const b of bots){
+      if(!b.alive||!b.root.visible)continue;
+      const d=b.root.position.distanceToSquared(eye);
+      if(d>90*90||d>=best)continue;
+      best=d;point=b.root.position.clone();point.y+=2.4;
+    }
+  }
+  if(aimbot.target==='pvp'||aimbot.target==='both'){
+    const remotes=duel.active&&duel.opponent?[remotePlayers.get(duel.opponent)]:[...remotePlayers.values()];
+    for(const remote of remotes){
+      if(!remote||!remote.group.visible)continue;
+      const d=remote.group.position.distanceToSquared(eye);
+      if(d>90*90||d>=best)continue;
+      best=d;point=remote.group.position.clone();point.y+=2.05;
+    }
+  }
+  return point;
+}
+function aimbotAim(dt){
+  if(!aimbot.enabled||gameMode==='lobby')return;
+  const point=aimbotPoint();
+  if(!point)return;
+  const eye=player.pos.clone();
+  if(player.crouching)eye.y-=.65;
+  const dir=point.sub(eye);
+  const flat=Math.hypot(dir.x,dir.z);
+  if(flat<.001)return;
+  const wantYaw=Math.atan2(-dir.x,-dir.z);
+  const wantPitch=Math.atan2(dir.y,flat);
+  const delta=((wantYaw-player.yaw+Math.PI)%(Math.PI*2)+Math.PI*2)%(Math.PI*2)-Math.PI;
+  const k=Math.min(1,dt*aimbot.speed);
+  player.yaw+=delta*k;
+  player.pitch+=(wantPitch-player.pitch)*k;
+}
 function update(dt){
   if(weaponAnim.inspect>0){
     weaponAnim.inspect=Math.max(0,weaponAnim.inspect-dt);
@@ -271,7 +310,7 @@ function update(dt){
   }
   player.pos.x=Math.max(-28.4,Math.min(28.4,player.pos.x));
   player.pos.z=Math.max(-28.4,Math.min(28.4,player.pos.z));
-  const eye=player.pos.clone();eye.y-=player.crouching?.65:0; camera.position.lerp(eye,.35); camera.fov+=((player.aiming?48:72)-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); camera.rotation.set(player.pitch,player.yaw,0); const viewX=player.slot===2?0:(player.aiming?.30:.48);weaponView.position.lerp(new THREE.Vector3(viewX,player.aiming?-.34:-.42,player.aiming?-.64:-.82),.2); weaponAnim.recoil=Math.max(0,weaponAnim.recoil-dt*8);weaponAnim.swing=Math.max(0,weaponAnim.swing-dt*5);weaponAnim.throw=Math.max(0,weaponAnim.throw-dt*3);weaponView.position.z-=weaponAnim.recoil*.13;weaponView.position.y-=player.sliding?.16:0;const reloadPose=player.reloading?Math.sin(Math.min(1,1-player.reloadTime/player.reloadTotal)*Math.PI):0;weaponView.position.y-=reloadPose*.22;weaponView.position.z+=reloadPose*.08;weaponView.rotation.x=weaponAnim.recoil*.2+weaponAnim.throw*.35-reloadPose*.85;weaponView.rotation.z=weaponAnim.swing*.7+reloadPose*.5;
+  const eye=player.pos.clone();eye.y-=player.crouching?.65:0; camera.position.lerp(eye,.35); camera.fov+=((player.aiming?48:72)-camera.fov)*Math.min(1,dt*12); camera.updateProjectionMatrix(); aimbotAim(dt); camera.rotation.set(player.pitch,player.yaw,0); const viewX=player.slot===2?0:(player.aiming?.30:.48);weaponView.position.lerp(new THREE.Vector3(viewX,player.aiming?-.34:-.42,player.aiming?-.64:-.82),.2); weaponAnim.recoil=Math.max(0,weaponAnim.recoil-dt*8);weaponAnim.swing=Math.max(0,weaponAnim.swing-dt*5);weaponAnim.throw=Math.max(0,weaponAnim.throw-dt*3);weaponView.position.z-=weaponAnim.recoil*.13;weaponView.position.y-=player.sliding?.16:0;const reloadPose=player.reloading?Math.sin(Math.min(1,1-player.reloadTime/player.reloadTotal)*Math.PI):0;weaponView.position.y-=reloadPose*.22;weaponView.position.z+=reloadPose*.08;weaponView.rotation.x=weaponAnim.recoil*.2+weaponAnim.throw*.35-reloadPose*.85;weaponView.rotation.z=weaponAnim.swing*.7+reloadPose*.5;
   if(weaponAnim.inspect>0){const p=1-weaponAnim.inspect/1.35;const lift=Math.sin(Math.min(1,p)*Math.PI);weaponView.position.x+=((player.aiming?.30:.48)+lift*.2-weaponView.position.x)*Math.min(1,dt*10);weaponView.position.y+=((player.aiming?-.34:-.42)+lift*.22-weaponView.position.y)*Math.min(1,dt*10);weaponView.position.z+=((player.aiming?-.64:-.82)-lift*.12-weaponView.position.z)*Math.min(1,dt*10);weaponView.rotation.y+=(lift*.6-weaponView.rotation.y)*Math.min(1,dt*10);weaponView.rotation.z+=(-lift*.5-weaponView.rotation.z)*Math.min(1,dt*10);}else{weaponView.rotation.y*=Math.max(0,1-dt*12);weaponView.rotation.z*=Math.max(0,1-dt*12);}
   const fireRate=weapons[player.slot].rate;if(shooting&&performance.now()-lastShot>fireRate){lastShot=performance.now();useWeapon();}
   const worldTime=performance.now()*.001; for(const p of [...ammoPickups]){if(Math.hypot(player.pos.x-p.mesh.position.x,player.pos.z-p.mesh.position.z)<3){const target=player.slot===5?2:player.slot<2?player.slot:0;player.ammo[target].reserve+=p.amount;scene.remove(p.mesh);ammoPickups.splice(ammoPickups.indexOf(p),1);updateAmmoHud();showMessage('AMMO +'+p.amount);}}
@@ -818,6 +857,11 @@ dbgPanel.innerHTML='<div class="dbg-head"><b>BEATHIM DEBUG</b><span class="dbg-h
   +'<button class="dbg-btn dbg-flybtn" data-dbg="flyoff">OFF</button>'
   +'<label class="dbg-flylabel">SPEED <input id="dbgFlySpeed" type="number" min="1" max="80" step="1" value="14" /></label>'
   +'<span class="dbg-tip">Space up / Shift down</span></div>'
+  +'<div class="dbg-fly"><span class="dbg-flylabel">AIMBOT</span>'
+  +'<button class="dbg-btn dbg-aimbtn" data-dbg="aimon">ON</button>'
+  +'<button class="dbg-btn dbg-aimbtn" data-dbg="aimoff">OFF</button>'
+  +'<label class="dbg-flylabel">TRACE <select id="dbgAimTarget" class="dbg-aimsel"><option value="enemies">ENEMIES</option><option value="pvp">PVP OPPONENT</option><option value="both">BOTH</option></select></label>'
+  +'<span class="dbg-tip">locks the closest target</span></div>'
   +'<div class="dbg-log" id="dbgLog"></div>'
   +'<div class="dbg-row"><span class="dbg-caret">&gt;</span><input id="dbgInput" autocomplete="off" spellcheck="false" placeholder="JS: player.pos.set(0,2.2,0)" /></div>'
   +'<div class="dbg-foot">scope: player | bots | scene | camera | weapons | keys | THREE</div>';
@@ -843,6 +887,18 @@ function dbgSetFly(on){
   dbgAppend('info','fly '+(on?'ON · speed '+player.flySpeed:'OFF · normal gravity'));
 }
 
+const dbgAimOn=dbgPanel.querySelector('[data-dbg="aimon"]');
+const dbgAimOff=dbgPanel.querySelector('[data-dbg="aimoff"]');
+const dbgAimTarget=dbgPanel.querySelector('#dbgAimTarget');
+function dbgSyncAimbot(){
+  dbgAimOn.classList.toggle('on',aimbot.enabled);
+  dbgAimOff.classList.toggle('on',!aimbot.enabled);
+  if(dbgAimTarget&&document.activeElement!==dbgAimTarget)dbgAimTarget.value=aimbot.target;
+}
+dbgAimOn.onclick=()=>{aimbot.enabled=true;dbgSyncAimbot();dbgAppend('info','aimbot ON · trace '+aimbot.target);};
+dbgAimOff.onclick=()=>{aimbot.enabled=false;dbgSyncAimbot();dbgAppend('info','aimbot OFF');};
+dbgAimTarget.onchange=()=>{aimbot.target=dbgAimTarget.value;dbgAppend('info','aimbot trace -> '+aimbot.target);};
+dbgSyncAimbot();
 function dbgFormat(value){
   if(typeof value==='string')return value;
   if(value===undefined)return 'undefined';
@@ -1010,7 +1066,7 @@ dbgPass.addEventListener('focus',()=>{if(document.pointerLockElement)document.ex
 addEventListener('keydown',e=>{if(e.code==='ShiftRight'&&!e.repeat){e.preventDefault();dbgToggle();}},true);
 // If the mouse is ever loose outside the console, clicking the game grabs it again.
 renderer.domElement.addEventListener('mousedown',()=>{if(!locked&&!dbg.open)dbgLockMouse();});
-window.BEATHIM={player,bots,scene,camera,keys,weapons,THREE,startGame,setWeapon,useWeapon,reloadWeapon,damageFor,damageBot,hitBot,blocked,scytheDash,dbg,dbgToggle,dbgSetFly,update,setFly:dbgSetFly,remotePlayers,net,duel,mode:()=>gameMode,netSkin:()=>netSkin,netName:()=>netName,inviteDuel,startDuel,enterLobby,renderLobbyList};
+window.BEATHIM={player,bots,scene,camera,keys,weapons,THREE,startGame,setWeapon,useWeapon,reloadWeapon,damageFor,damageBot,hitBot,blocked,scytheDash,dbg,dbgToggle,dbgSetFly,update,setFly:dbgSetFly,aimbot,remotePlayers,net,duel,mode:()=>gameMode,netSkin:()=>netSkin,netName:()=>netName,inviteDuel,startDuel,enterLobby,renderLobbyList};
 
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);update(dt);renderer.render(scene,camera);dbg.frames++;dbg.acc+=dt;if(dbg.acc>=.5){dbg.fps=dbg.frames/dbg.acc;dbg.frames=0;dbg.acc=0;}if(dbg.open)dbgRefresh();} loop();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});

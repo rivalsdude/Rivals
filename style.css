@@ -150,3 +150,9 @@ body.relay-offline #onlineBadge { color:#7b83a3; }
 .weapon-options input { width:16px; height:16px; accent-color:#62cfff; }
 .weapon-options label:has(input:checked) { border-color:#62cfff; background:#1b2f66; }
 #duelSetupWho { margin:0 0 14px; font-size:11px; letter-spacing:.14em; font-weight:800; color:#6cd9ff; }
+
+
+/* ---- debug aimbot row ---- */
+.dbg-aimbtn { min-width: 40px; }
+.dbg-aimbtn.on { color: #04202b; background: #4bf0a8; border-color: #4bf0a8; font-weight: 700; }
+.dbg-aimsel { padding: 3px 5px; font: inherit; font-size: 9px; letter-spacing: .06em; color: #dbe6ff; background: #101a36; border: 1px solid rgba(120,180,255,.3); border-radius: 5px; }
