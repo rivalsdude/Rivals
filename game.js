@@ -203,10 +203,15 @@ function aimbotPoint(){
   if(aimbot.target==='pvp'||aimbot.target==='both'){
     const remotes=duel.active&&duel.opponent?[remotePlayers.get(duel.opponent)]:[...remotePlayers.values()];
     for(const remote of remotes){
-      if(!remote||!remote.group.visible)continue;
-      const d=remote.group.position.distanceToSquared(eye);
+      // In PVP, use the latest network position rather than the interpolated
+      // mesh. The mesh can briefly be hidden while a duel is starting, which
+      // used to make the trace silently skip the opponent.
+      if(!remote||!remote.target?.isVector3||remote.mode!==gameMode||performance.now()-remote.lastSeen>20000)continue;
+      const target=remote.target.clone();
+      target.y+=1.7;
+      const d=target.distanceToSquared(eye);
       if(d>90*90||d>=best)continue;
-      best=d;point=remote.group.position.clone();point.y+=2.05;
+      best=d;point=target;
     }
   }
   return point;
