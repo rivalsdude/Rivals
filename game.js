@@ -159,7 +159,6 @@ function startGame(mode){
 function resetBot(b){ b.root.position.copy(b.home); b.hp=100; b.alive=true; b.root.visible=true; }
 function spawnAmmoDrop(position){const mesh=new THREE.Mesh(new THREE.BoxGeometry(.55,.28,.35),mat(0x2b8fbb,cyan));mesh.castShadow=true;mesh.position.set(position.x,.35,position.z);scene.add(mesh);ammoPickups.push({mesh,amount:24});}
 function damageBot(b,damage){ b.hp-=damage; if(b.hp<=0){if(b.team==='target'){b.alive=false;b.root.visible=false;b.respawn=1.2;showMessage('TARGET DOWN');return;}const dropPos=b.root.position.clone();b.alive=false;b.root.visible=false;b.respawn=3; if(b.team==='red'){player.blue++;blueScoreEl.textContent=player.blue;spawnAmmoDrop(dropPos);} else {player.red++;redScoreEl.textContent=player.red;} showMessage('ELIMINATED');} }
-const impactMarks=[];
 function isViewmodelObject(object){
   let current=object;
   while(current){if(current===weaponView||current===camera)return true;current=current.parent;}
@@ -181,37 +180,10 @@ function firstShotHit(){
   }
   return null;
 }
-function makeImpactMark(hit,kind='bullet'){
-  if(!hit?.face)return;
-  const normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
-  // Only vertical surfaces count as walls. Do not leave decals on floors,
-  // ceilings, players, or the arena's horizontal decorations.
-  if(Math.abs(normal.y)>.62)return;
-  const melee=kind==='melee';
-  const mark=new THREE.Group();
-  const center=new THREE.Mesh(
-    new THREE.CircleGeometry(melee?.2:.075,melee?8:16),
-    new THREE.MeshBasicMaterial({color:melee?0xff6f91:0x090d18,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide})
-  );
-  mark.add(center);
-  if(!melee){
-    const rim=new THREE.Mesh(new THREE.RingGeometry(.09,.125,16),new THREE.MeshBasicMaterial({color:0x39445b,transparent:true,opacity:.8,depthWrite:false,side:THREE.DoubleSide}));
-    rim.position.z=.002;mark.add(rim);
-  }else{
-    const slashMat=new THREE.MeshBasicMaterial({color:0xffb0c6,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide});
-    const slashA=new THREE.Mesh(new THREE.PlaneGeometry(.035,.3),slashMat);
-    const slashB=slashA.clone();slashA.rotation.z=.7;slashB.rotation.z=-.7;slashA.position.z=.003;slashB.position.z=.004;mark.add(slashA,slashB);
-  }
-  mark.position.copy(hit.point).addScaledVector(normal,.014);
-  mark.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);
-  scene.add(mark);impactMarks.push(mark);
-  if(impactMarks.length>100){scene.remove(impactMarks.shift());}
-}
 function hitBot(){
   const result=firstShotHit();
   if(!result)return;
   if(result.wall){
-    makeImpactMark(result.hit,(player.slot===2||player.slot===4)?'melee':'bullet');
     showMessage((player.slot===2||player.slot===4)?'MELEE HIT WALL':'WALL HIT');
     return;
   }
@@ -256,7 +228,7 @@ function scytheDash(){
     if(isViewmodelObject(h.object)||h.object.material?.transparent)continue;
     target=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent);
     if(target&&target.alive)break;
-    makeImpactMark(h,'melee');showMessage('MELEE HIT WALL');return;
+    showMessage('MELEE HIT WALL');return;
   }
   const aimDir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation).normalize();
   if(player.grounded&&aimDir.y<0)aimDir.y=0;aimDir.normalize();
