@@ -159,10 +159,100 @@ function startGame(mode){
 function resetBot(b){ b.root.position.copy(b.home); b.hp=100; b.alive=true; b.root.visible=true; }
 function spawnAmmoDrop(position){const mesh=new THREE.Mesh(new THREE.BoxGeometry(.55,.28,.35),mat(0x2b8fbb,cyan));mesh.castShadow=true;mesh.position.set(position.x,.35,position.z);scene.add(mesh);ammoPickups.push({mesh,amount:24});}
 function damageBot(b,damage){ b.hp-=damage; if(b.hp<=0){if(b.team==='target'){b.alive=false;b.root.visible=false;b.respawn=1.2;showMessage('TARGET DOWN');return;}const dropPos=b.root.position.clone();b.alive=false;b.root.visible=false;b.respawn=3; if(b.team==='red'){player.blue++;blueScoreEl.textContent=player.blue;spawnAmmoDrop(dropPos);} else {player.red++;redScoreEl.textContent=player.red;} showMessage('ELIMINATED');} }
-function hitBot(){ const ray=new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(0,0),camera); const hits=ray.intersectObjects(scene.children,true); for(const h of hits){ let b=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent); if(b&&b.alive&&!duel.active){const distance=b.root.position.distanceTo(player.pos);if((player.slot===2||player.slot===4)&&distance>3.8){showMessage('TOO FAR');return;} const headshot=h.object.userData.hitZone==='head';const damage=damageFor(player.slot,headshot); h.object.material.emissive.setHex(0xffffff); setTimeout(()=>h.object.material.emissive.setHex(b.team==='blue'?cyan:pink),80); damageBot(b,damage); showHit(damage); showMessage(headshot?'HEADSHOT':'BODY SHOT'); return; } const remote=findRemoteByObject(h.object); if(remote&&remote.group.visible){   const headshot=h.object.userData.hitZone==='head';   if((player.slot===2||player.slot===4)&&player.pos.distanceTo(remote.group.position)>4.2){showMessage('TOO FAR');return;}   const damage=damageFor(player.slot,headshot);   net.send({t:'hit',to:remote.id,damage,name:netName});   if(h.object.material&&h.object.material.emissive){h.object.material.emissive.setHex(0xffffff);setTimeout(()=>{if(h.object.material&&h.object.material.emissive)h.object.material.emissive.setHex(0x000000);},90);}   showHit(damage); showMessage((headshot?'HEADSHOT ':'HIT ')+remote.name);   return; } } }
+const impactMarks=[];
+function isViewmodelObject(object){
+  let current=object;
+  while(current){if(current===weaponView||current===camera)return true;current=current.parent;}
+  return false;
+}
+function firstShotHit(){
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hits=ray.intersectObjects(scene.children,true);
+  for(const hit of hits){
+    if(isViewmodelObject(hit.object))continue;
+    const bot=bots.find(v=>v.root===hit.object.parent||v.root===hit.object.parent?.parent);
+    if(bot&&bot.alive)return {hit,bot,remote:null};
+    const remote=findRemoteByObject(hit.object);
+    if(remote&&remote.group.visible)return {hit,bot:null,remote};
+    // Name tags and other transparent overlays should not stop a shot.
+    if(hit.object.material?.transparent)continue;
+    return {hit,bot:null,remote:null,wall:true};
+  }
+  return null;
+}
+function makeImpactMark(hit,kind='bullet'){
+  if(!hit?.face)return;
+  const normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+  const mark=new THREE.Mesh(
+    new THREE.CircleGeometry(kind==='melee'?.22:.1,kind==='melee'?8:12),
+    new THREE.MeshBasicMaterial({color:kind==='melee'?0xff6f91:0x111521,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide})
+  );
+  mark.position.copy(hit.point).addScaledVector(normal,.012);
+  mark.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),normal);
+  scene.add(mark);impactMarks.push(mark);
+  if(impactMarks.length>100){scene.remove(impactMarks.shift());}
+}
+function hitBot(){
+  const result=firstShotHit();
+  if(!result)return;
+  if(result.wall){
+    makeImpactMark(result.hit,(player.slot===2||player.slot===4)?'melee':'bullet');
+    showMessage((player.slot===2||player.slot===4)?'MELEE HIT WALL':'WALL HIT');
+    return;
+  }
+  const h=result.hit,w=weapons[player.slot],headshot=h.object.userData.hitZone==='head';
+  if(result.bot){
+    const b=result.bot;
+    const distance=b.root.position.distanceTo(player.pos);
+    if((player.slot===2||player.slot===4)&&distance>3.8){showMessage('TOO FAR');return;}
+    const damage=damageFor(player.slot,headshot);
+    h.object.material.emissive.setHex(0xffffff);
+    setTimeout(()=>h.object.material.emissive.setHex(b.team==='blue'?cyan:pink),80);
+    damageBot(b,damage);showHit(damage);showMessage(headshot?'HEADSHOT':'BODY SHOT');return;
+  }
+  const remote=result.remote;
+  if(remote){
+    if((player.slot===2||player.slot===4)&&player.pos.distanceTo(remote.group.position)>4.2){showMessage('TOO FAR');return;}
+    const damage=damageFor(player.slot,headshot);
+    net.send({t:'hit',to:remote.id,damage,name:netName});
+    if(h.object.material&&h.object.material.emissive){
+      h.object.material.emissive.setHex(0xffffff);
+      setTimeout(()=>{if(h.object.material&&h.object.material.emissive)h.object.material.emissive.setHex(0x000000);},90);
+    }
+    showHit(damage);showMessage((headshot?'HEADSHOT ':'HIT ')+remote.name);
+  }
+}
 function throwGrenade(){ if(player.grenades<=0){showMessage('NO GRENADES');return;} player.grenades--;updateAmmoHud(); const grenade=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),mat(0x4a556e)); grenade.position.copy(camera.position); scene.add(grenade); const dir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation); const start=grenade.position.clone(); let t=0; const fly=()=>{t+=.035; grenade.position.copy(start).addScaledVector(dir,Math.min(t,1)*13);grenade.position.y-=Math.max(0,t-0.3)*2;if(t<1){requestAnimationFrame(fly);}else{for(const b of bots){if(b.alive&&b.root.position.distanceTo(grenade.position)<7){damageBot(b,50);showHit(50);}}scene.remove(grenade);showMessage('GRENADE!');}};fly(); }
-function spawnTracer(){ const dir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation); const tracer=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),mat(0xfff2a8,0xffd24d)); tracer.position.copy(camera.position).addScaledVector(dir,.55); scene.add(tracer); const start=tracer.position.clone(); let t=0; const fly=()=>{t+=.06;tracer.position.copy(start).addScaledVector(dir,t*34);if(t<.32)requestAnimationFrame(fly);else scene.remove(tracer);};fly(); const flash=new THREE.Mesh(new THREE.SphereGeometry(.12,8,8),mat(0xffe78a,0xffa31a)); flash.position.set(0,.02,-.94); weaponView.add(flash);setTimeout(()=>weaponView.remove(flash),55); }
-function scytheDash(){if(player.scytheCooldown>0){showMessage('SCYTHE COOLING');return;}const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);const hits=ray.intersectObjects(scene.children,true);let target=null;for(const h of hits){target=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent);if(target&&target.alive)break;}const aimDir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation).normalize();if(player.grounded&&aimDir.y<0)aimDir.y=0;aimDir.normalize();const destination=target?target.root.position.clone().addScaledVector(aimDir,-2.1):player.pos.clone().addScaledVector(aimDir,7);if(target)destination.y=2.2;else destination.y=Math.max(2.2,destination.y);const old=player.pos.clone();player.pos.copy(destination);if(blocked(player.pos))player.pos.copy(old);player.scytheCooldown=1.1;weaponView.rotation.z=-.7;setTimeout(()=>weaponView.rotation.z=0,180);if(target&&target.alive&&player.pos.distanceTo(target.root.position)<3.8){damageBot(target,25);showHit(25);showMessage('SCYTHE HIT');}else showMessage(aimDir.y>.15?'UPWARD DASH':aimDir.y<-.15?'DOWNWARD DASH':'DASH');}
+function spawnTracer(){
+  const result=firstShotHit();
+  const maxDistance=result?.hit?.distance||34;
+  const dir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation);
+  const tracer=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),mat(0xfff2a8,0xffd24d));
+  tracer.position.copy(camera.position).addScaledVector(dir,.55);scene.add(tracer);
+  const start=tracer.position.clone();let t=0;
+  const fly=()=>{t+=.06;tracer.position.copy(start).addScaledVector(dir,Math.min(t*34,Math.max(.6,maxDistance)));if(t*34<maxDistance)requestAnimationFrame(fly);else scene.remove(tracer);};fly();
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(.12,8,8),mat(0xffe78a,0xffa31a));flash.position.set(0,.02,-.94);weaponView.add(flash);setTimeout(()=>weaponView.remove(flash),55);
+}
+function scytheDash(){
+  if(player.scytheCooldown>0){showMessage('SCYTHE COOLING');return;}
+  const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hits=ray.intersectObjects(scene.children,true);let target=null;
+  for(const h of hits){
+    if(isViewmodelObject(h.object)||h.object.material?.transparent)continue;
+    target=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent);
+    if(target&&target.alive)break;
+    makeImpactMark(h,'melee');showMessage('MELEE HIT WALL');return;
+  }
+  const aimDir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation).normalize();
+  if(player.grounded&&aimDir.y<0)aimDir.y=0;aimDir.normalize();
+  const destination=target?target.root.position.clone().addScaledVector(aimDir,-2.1):player.pos.clone().addScaledVector(aimDir,7);
+  if(target)destination.y=2.2;else destination.y=Math.max(2.2,destination.y);
+  const old=player.pos.clone();player.pos.copy(destination);if(blocked(player.pos))player.pos.copy(old);
+  player.scytheCooldown=1.1;weaponView.rotation.z=-.7;setTimeout(()=>weaponView.rotation.z=0,180);
+  if(target&&target.alive&&player.pos.distanceTo(target.root.position)<3.8){damageBot(target,25);showHit(25);showMessage('SCYTHE HIT');}
+  else showMessage(aimDir.y>.15?'UPWARD DASH':aimDir.y<-.15?'DOWNWARD DASH':'DASH');
+}
 function useWeapon(){ if(player.reloading)return; if(player.slot===3){weaponAnim.throw=1;throwGrenade();return;} if(player.slot===4){weaponAnim.swing=1.2;hitBot();return;} if(player.slot!==2){const ammoSlot=player.slot===5?2:player.slot;const a=player.ammo[ammoSlot];if(a.mag<=0){reloadWeapon();return;}a.mag--;updateAmmoHud();if(a.mag<=0){reloadWeapon();}weaponAnim.recoil=1;spawnTracer();}else weaponAnim.swing=1; hitBot(); }
 function doQuickMelee(){ if(gameMode==="lobby"||player.quickMeleeTimer>0)return; const current=player.slot; const target=duel.active?duel.weapons[2]:(player.meleeChoice===4?4:2); if(current===target){weaponAnim.swing=1.2;hitBot();return;} player.prevSlot=current; player.slot=target; player.aimHold=false; player.aimKey=false; player.reloading=false; updateAim(); const w=weapons[player.slot]; weaponName.innerHTML=w.name+(player.slot===0?" <span style=\"color:#6cd9ff\">▰▰▰</span>":""); slotLabel.textContent=w.slot+" · "+(player.slot+1); updateAmmoHud(); rebuildWeapon(); showMessage(w.name); weaponAnim.swing=1.2; hitBot(); player.quickMeleeTimer=0.5; }
 function showMessage(t){ const el=document.getElementById('message');el.textContent=t;el.style.opacity=1;clearTimeout(showMessage.t);showMessage.t=setTimeout(()=>el.style.opacity=0,650); }
