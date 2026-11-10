@@ -159,7 +159,7 @@ function startGame(mode){
 function resetBot(b){ b.root.position.copy(b.home); b.hp=100; b.alive=true; b.root.visible=true; }
 function startSingleRound(){
   single.active=true;single.roundOver=false;
-  bots.forEach((bot,index)=>{bot.root.visible=index===single.botIndex;bot.alive=index===single.botIndex;bot.hp=100;bot.root.position.copy(bot.home);});
+  bots.forEach((bot,index)=>{bot.root.visible=index===single.botIndex;bot.alive=index===single.botIndex;bot.hp=100;bot.root.position.copy(bot.home);bot.root.scale.set(1,1,1);bot.aiPath=[];bot.aiGoalTimer=0;bot.aiAmmo=single.difficulty==='hard'?8:6;});
   const bot=bots[single.botIndex];
   if(bot){bot.root.position.set(0,0,-18);bot.home.set(0,0,-18);bot.root.visible=true;bot.alive=true;bot.hp=100;}
   player.hp=100;player.pos.set(0,2.2,18);player.yaw=player.cameraYaw=Math.PI;player.pitch=0;
@@ -172,6 +172,20 @@ function showSingleReport(){
   if(report){report.querySelector('h2').textContent=single.wins>=3?'MISSION COMPLETE':'MISSION FAILED';report.querySelector('p').textContent='Rounds won: '+single.wins+' / 5 · Difficulty: '+single.difficulty.toUpperCase();report.classList.add('open');}
 }
 function nextSingleRound(){single.wins++;single.round++;if(single.round>5){showSingleReport();return;}single.botIndex=(single.botIndex+1)%bots.length;startSingleRound();}
+
+function botGridPoint(x,z){return {x:Math.max(-27,Math.min(27,Math.round(x/3)*3)),z:Math.max(-27,Math.min(27,Math.round(z/3)*3))};}
+function botGridWalkable(x,z){const probe=new THREE.Vector3(x,2.2,z);return !blocked(probe);}
+function findBotPath(from,to){
+  const start=botGridPoint(from.x,from.z),goal=botGridPoint(to.x,to.z),key=(x,z)=>x+','+z;
+  const open=[{x:start.x,z:start.z,g:0,f:0}],came=new Map(),cost=new Map([[key(start.x,start.z),0]]),dirs=[[3,0],[-3,0],[0,3],[0,-3]];
+  let loops=0;
+  while(open.length&&loops++<500){
+    open.sort((a,b)=>a.f-b.f);const current=open.shift();
+    if(current.x===goal.x&&current.z===goal.z){const path=[];let node=current,k=key(node.x,node.z);while(k!==key(start.x,start.z)){path.unshift(new THREE.Vector3(node.x,0,node.z));node=came.get(k);k=key(node.x,node.z);}return path;}
+    for(const [dx,dz] of dirs){const x=current.x+dx,z=current.z+dz;if(!botGridWalkable(x,z))continue;const nk=key(x,z),ng=current.g+1;if(!cost.has(nk)||ng<cost.get(nk)){cost.set(nk,ng);came.set(nk,current);open.push({x,z,g:ng,f:ng+Math.abs(goal.x-x)+Math.abs(goal.z-z)});}}
+  }
+  return [];
+}
 
 function faceBotTowardPlayer(bot){
   // Rotate only around the vertical axis. Object3D.lookAt() also pitches the
@@ -189,19 +203,26 @@ function updateSingleBot(bot,dt){
     ];
     bot.aiGoal=new THREE.Vector3(point[0],0,point[1]);
     bot.aiGoalTimer=1.2+Math.random()*2.3;
+    bot.aiPath=findBotPath(bot.root.position,bot.aiGoal);
   }
   bot.aiGoalTimer-=dt;
-  const toGoal=bot.aiGoal.clone().sub(bot.root.position);toGoal.y=0;
+  if(!bot.aiPath?.length)bot.aiPath=findBotPath(bot.root.position,bot.aiGoal);
+  const waypoint=bot.aiPath?.[0]||bot.aiGoal;
+  const toGoal=waypoint.clone().sub(bot.root.position);toGoal.y=0;
   if(toGoal.length()<1.2)bot.aiGoalTimer=0;
   else{
-    const direction=toGoal.normalize(),speed=single.difficulty==='hard'?3.2:2.2,step=speed*dt;
+    const direction=toGoal.normalize();if(toGoal.length()<1.8&&bot.aiPath?.length)bot.aiPath.shift();
+    bot.aiSprint=(bot.aiSprint||0)-dt;if(bot.aiSprint<=0)bot.aiSprint=1.2+Math.random()*2;
+    const sprinting=bot.aiSprint<.65;
+    const speed=(single.difficulty==='hard'?3.2:2.2)*(sprinting?1.55:1),step=speed*dt;
     const canMove=(x,z)=>{const probe=bot.root.position.clone();probe.y=2.2;probe.x=x;probe.z=z;return !blocked(probe);};
     const nx=bot.root.position.x+direction.x*step,nz=bot.root.position.z+direction.z*step;
     if(canMove(nx,nz)){bot.root.position.x=nx;bot.root.position.z=nz;}
     else if(canMove(bot.root.position.x-direction.z*step,bot.root.position.z+direction.x*step)){
       bot.root.position.x-=direction.z*step;bot.root.position.z+=direction.x*step;
-    }else bot.aiGoalTimer=0;
+    }else{bot.aiGoalTimer=0;bot.aiPath=[];}
   }
+  bot.aiCrouchTimer=(bot.aiCrouchTimer||0)-dt;if(bot.aiCrouchTimer<=0&&Math.random()<dt*.08)bot.aiCrouchTimer=.7+Math.random()*.8;bot.root.scale.y=bot.aiCrouchTimer>0?.72:1;
   bot.root.position.x=Math.max(-27,Math.min(27,bot.root.position.x));bot.root.position.z=Math.max(-27,Math.min(27,bot.root.position.z));faceBotTowardPlayer(bot);
   bot.aiReload=(bot.aiReload||0)-dt;
   if(bot.aiReload>0)return;
