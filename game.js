@@ -181,6 +181,42 @@ function faceBotTowardPlayer(bot){
   const dz=player.pos.z-bot.root.position.z;
   bot.root.rotation.set(0,Math.atan2(dx,dz),0);
 }
+function updateSingleBot(bot,dt){
+  if(!bot.aiGoal||bot.aiGoalTimer<=0){
+    const cover=[[-18,-12],[18,-12],[-18,12],[18,12],[-8,-7],[8,7],[0,-20],[0,20]];
+    const point=Math.random()<.45?cover[Math.floor(Math.random()*cover.length)]:[
+      player.pos.x+(Math.random()*2-1)*10,player.pos.z+(Math.random()*2-1)*10
+    ];
+    bot.aiGoal=new THREE.Vector3(point[0],0,point[1]);
+    bot.aiGoalTimer=1.2+Math.random()*2.3;
+  }
+  bot.aiGoalTimer-=dt;
+  const toGoal=bot.aiGoal.clone().sub(bot.root.position);toGoal.y=0;
+  if(toGoal.length()<1.2)bot.aiGoalTimer=0;
+  else{
+    const direction=toGoal.normalize(),speed=single.difficulty==='hard'?3.2:2.2,step=speed*dt;
+    const canMove=(x,z)=>{const probe=bot.root.position.clone();probe.y=2.2;probe.x=x;probe.z=z;return !blocked(probe);};
+    const nx=bot.root.position.x+direction.x*step,nz=bot.root.position.z+direction.z*step;
+    if(canMove(nx,nz)){bot.root.position.x=nx;bot.root.position.z=nz;}
+    else if(canMove(bot.root.position.x-direction.z*step,bot.root.position.z+direction.x*step)){
+      bot.root.position.x-=direction.z*step;bot.root.position.z+=direction.x*step;
+    }else bot.aiGoalTimer=0;
+  }
+  bot.root.position.x=Math.max(-27,Math.min(27,bot.root.position.x));bot.root.position.z=Math.max(-27,Math.min(27,bot.root.position.z));faceBotTowardPlayer(bot);
+  bot.aiReload=(bot.aiReload||0)-dt;
+  if(bot.aiReload>0)return;
+  bot.aiAmmo=bot.aiAmmo??(single.difficulty==='hard'?8:6);
+  if(bot.aiAmmo<=0){bot.aiReload=single.difficulty==='hard'?1.15:1.8;bot.aiAmmo=single.difficulty==='hard'?8:6;return;}
+  bot.aiShotCooldown=(bot.aiShotCooldown||0)-dt;
+  if(bot.root.position.distanceTo(player.pos)<34&&bot.aiShotCooldown<=0){
+    bot.aiShotCooldown=single.difficulty==='hard'?.55+Math.random()*.35:1.25+Math.random()*1.1;
+    if(Math.random()<(single.difficulty==='hard'?.88:.5)){
+      const damage=single.difficulty==='hard'?8:5;player.hp=Math.max(0,player.hp-damage);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;
+      bot.aiAmmo--;
+      if(!player.hp){single.roundOver=true;showMessage('ROUND LOST');setTimeout(showSingleReport,900);}
+    }
+  }
+}
 function spawnAmmoDrop(position){const mesh=new THREE.Mesh(new THREE.BoxGeometry(.55,.28,.35),mat(0x2b8fbb,cyan));mesh.castShadow=true;mesh.position.set(position.x,.35,position.z);scene.add(mesh);ammoPickups.push({mesh,amount:24});}
 function damageBot(b,damage){ b.hp-=damage; if(b.hp<=0){if(gameMode==='single'&&single.active){b.alive=false;b.root.visible=false;showMessage('ROUND WON');setTimeout(nextSingleRound,900);return;}const dropPos=b.root.position.clone();b.alive=false;b.root.visible=false;b.respawn=3; if(b.team==='red'){player.blue++;blueScoreEl.textContent=player.blue;spawnAmmoDrop(dropPos);} else {player.red++;redScoreEl.textContent=player.red;} showMessage('ELIMINATED');} }
 function isViewmodelObject(object){
@@ -433,7 +469,7 @@ function update(dt){
   if(weaponAnim.inspect>0){const p=1-weaponAnim.inspect/1.35;const lift=Math.sin(Math.min(1,p)*Math.PI);weaponView.position.x+=((player.aiming?.30:.48)+lift*.2-weaponView.position.x)*Math.min(1,dt*10);weaponView.position.y+=((player.aiming?-.34:-.42)+lift*.22-weaponView.position.y)*Math.min(1,dt*10);weaponView.position.z+=((player.aiming?-.64:-.82)-lift*.12-weaponView.position.z)*Math.min(1,dt*10);weaponView.rotation.y+=(lift*.6-weaponView.rotation.y)*Math.min(1,dt*10);weaponView.rotation.z+=(-lift*.5-weaponView.rotation.z)*Math.min(1,dt*10);}else{weaponView.rotation.y*=Math.max(0,1-dt*12);weaponView.rotation.z*=Math.max(0,1-dt*12);}
   const fireRate=weapons[player.slot].rate;if(shooting&&performance.now()-lastShot>fireRate){lastShot=performance.now();useWeapon();}
   const worldTime=performance.now()*.001; for(const p of [...ammoPickups]){if(Math.hypot(player.pos.x-p.mesh.position.x,player.pos.z-p.mesh.position.z)<3){const target=player.slot===5?2:player.slot<2?player.slot:0;player.ammo[target].reserve+=p.amount;scene.remove(p.mesh);ammoPickups.splice(ammoPickups.indexOf(p),1);updateAmmoHud();showMessage('AMMO +'+p.amount);}}
-  if(!duel.active)for(const b of bots){if(gameMode==='single'&&b!==bots[single.botIndex]){b.root.visible=false;continue;}if(!b.alive){b.respawn-=dt;if(b.respawn<=0)resetBot(b);continue;} if(gameMode==='range'){if(b.team!=='target'){b.root.visible=false;continue;} faceBotTowardPlayer(b);continue;} const to=player.pos.clone().sub(b.root.position); to.y=0; if(to.length()<22){const forward=to.clone().normalize();const side=new THREE.Vector3(-forward.z,0,forward.x);b.root.position.addScaledVector(forward,dt*.55);b.root.position.addScaledVector(side,Math.sin(worldTime*1.8+b.phase)*dt*.8); b.shoot-=dt; if(b.shoot<=0){b.shoot=(single.difficulty==='hard'?1.05:1.7)+Math.random()*(single.difficulty==='hard'?1.2:2);if(Math.random()<(single.difficulty==='hard'?.55:.28)){player.hp=Math.max(0,player.hp-8);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;if(!player.hp){if(gameMode==='single'&&single.active){single.roundOver=true;showMessage('ROUND LOST');setTimeout(showSingleReport,900);}else{player.hp=100;player.pos.set(0,2.2,27);healthBarEl.style.width='100%';hpTextEl.textContent=100;showMessage('RESPAWNED');}}}}}else{b.root.position.x=b.home.x+Math.sin(worldTime*.7+b.phase)*3.2*b.strafe;b.root.position.z=b.home.z+Math.cos(worldTime*.55+b.phase)*2.2;} b.root.position.x=Math.max(-33,Math.min(33,b.root.position.x));b.root.position.z=Math.max(-33,Math.min(33,b.root.position.z));faceBotTowardPlayer(b);}
+  if(!duel.active)for(const b of bots){if(gameMode==='single'&&b!==bots[single.botIndex]){b.root.visible=false;continue;}if(!b.alive){b.respawn-=dt;if(b.respawn<=0)resetBot(b);continue;} if(gameMode==='single'){updateSingleBot(b,dt);continue;} if(gameMode==='range'){if(b.team!=='target'){b.root.visible=false;continue;} faceBotTowardPlayer(b);continue;} const to=player.pos.clone().sub(b.root.position); to.y=0; if(to.length()<22){const forward=to.clone().normalize();const side=new THREE.Vector3(-forward.z,0,forward.x);b.root.position.addScaledVector(forward,dt*.55);b.root.position.addScaledVector(side,Math.sin(worldTime*1.8+b.phase)*dt*.8); b.shoot-=dt; if(b.shoot<=0){b.shoot=(single.difficulty==='hard'?1.05:1.7)+Math.random()*(single.difficulty==='hard'?1.2:2);if(Math.random()<(single.difficulty==='hard'?.55:.28)){player.hp=Math.max(0,player.hp-8);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;if(!player.hp){if(gameMode==='single'&&single.active){single.roundOver=true;showMessage('ROUND LOST');setTimeout(showSingleReport,900);}else{player.hp=100;player.pos.set(0,2.2,27);healthBarEl.style.width='100%';hpTextEl.textContent=100;showMessage('RESPAWNED');}}}}}else{b.root.position.x=b.home.x+Math.sin(worldTime*.7+b.phase)*3.2*b.strafe;b.root.position.z=b.home.z+Math.cos(worldTime*.55+b.phase)*2.2;} b.root.position.x=Math.max(-33,Math.min(33,b.root.position.x));b.root.position.z=Math.max(-33,Math.min(33,b.root.position.z));faceBotTowardPlayer(b);}
   beacon.intensity=4.5+Math.sin(performance.now()*.004)*1.5;
 }
 /* ---------------- MULTIPLAYER (two tabs of the same browser) ---------------- */
