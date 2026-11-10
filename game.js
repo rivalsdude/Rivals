@@ -172,12 +172,23 @@ function isViewmodelObject(object){
   while(current){if(current===weaponView||current===camera)return true;current=current.parent;}
   return false;
 }
+function isVisibleWorldObject(object){
+  let current=object;
+  while(current&&current!==scene){
+    if(current.visible===false)return false;
+    current=current.parent;
+  }
+  return true;
+}
 function firstShotHit(){
   const ray=new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2(0,0),camera);
   const hits=ray.intersectObjects(scene.children,true);
   for(const hit of hits){
     if(isViewmodelObject(hit.object))continue;
+    // Raycaster can still return meshes inside hidden groups. Ignore those
+    // or hidden lobby/map geometry can act like invisible bullet walls.
+    if(!isVisibleWorldObject(hit.object))continue;
     const bot=bots.find(v=>v.root===hit.object.parent||v.root===hit.object.parent?.parent);
     if(bot&&bot.alive)return {hit,bot,remote:null};
     const remote=findRemoteByObject(hit.object);
@@ -233,7 +244,7 @@ function scytheDash(){
   const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);
   const hits=ray.intersectObjects(scene.children,true);let target=null;
   for(const h of hits){
-    if(isViewmodelObject(h.object)||h.object.material?.transparent)continue;
+    if(isViewmodelObject(h.object)||!isVisibleWorldObject(h.object)||h.object.material?.transparent)continue;
     target=bots.find(v=>v.root===h.object.parent||v.root===h.object.parent?.parent);
     if(target&&target.alive)break;
     showMessage('MELEE HIT WALL');return;
