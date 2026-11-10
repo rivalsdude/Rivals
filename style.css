@@ -89,6 +89,13 @@ body.settings-open, body.settings-open #game canvas { cursor: default; }
 #lobbyPlayers h3 span { color:#6cd9ff; }
 #lobbyPlayerList { display:flex; flex-direction:column; gap:6px; }
 #start.choosing #lobbyPlayers { display:none; }
+.difficulty-choice { display:block; margin:12px 0; color:#9fb0dd; font-size:10px; letter-spacing:.12em; font-weight:800; }
+.difficulty-choice select { display:block; width:100%; margin-top:6px; padding:8px; color:#fff; background:#172044; border:1px solid #34447d; border-radius:6px; }
+#singleReport { display:none; position:fixed; inset:0; z-index:90; align-items:center; justify-content:center; background:rgba(3,5,14,.82); backdrop-filter:blur(5px); }
+#singleReport.open { display:flex; }
+#singleReport .name-card { text-align:center; }
+#singleReport h2 { margin:8px 0; }
+#singleReport p { color:#b8c5e8; line-height:1.6; }
 .mp-row { display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:8px; background:rgba(18,26,56,.8); border:1px solid rgba(135,163,255,.16); font-size:13px; }
 .mp-row.me { border-color:rgba(108,217,255,.35); }
 .mp-row b { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#eaf0ff; font-weight:700; }

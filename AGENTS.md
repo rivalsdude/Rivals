@@ -69,6 +69,13 @@ other tab gets an ACCEPT / DECLINE popup (`#duelPrompt`).
 - `duel-end` returns both tabs to the lobby, as do disconnects (15s without a
   state message) and the `LEAVE PVP` button
 
+### Single player
+
+The old shooting-range dummy targets are removed. The lobby's Single Player
+button starts five rounds against computer players, with Easy / Hard
+difficulty. Existing bots provide movement, strafing, aiming, shooting, and
+reload behavior; a final report appears after the five-round run.
+
 ## Always push changes
 
 After any change to this project, commit and push it to GitHub:
