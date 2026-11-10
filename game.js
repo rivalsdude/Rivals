@@ -616,7 +616,13 @@ function findRemoteByObject(object){
 function updateRemotePlayers(dt){
   const now=performance.now();
   for(const remote of remotePlayers.values()){
-    const visible=remote.mode===gameMode&&now-remote.lastSeen<20000;
+    // Normal maps are solo instances: remote players stay hidden there.
+    // The lobby shows lobby players, while an active PVP shows only its
+    // opponent. This prevents players in unrelated matches from appearing.
+    const allowed=gameMode==='lobby'
+      ? remote.mode==='lobby'
+      : duel.active&&remote.id===duel.opponent&&remote.mode===gameMode;
+    const visible=allowed&&now-remote.lastSeen<20000;
     remote.group.visible=visible;
     if(!visible)continue;
     const k=Math.min(1,dt*12);
