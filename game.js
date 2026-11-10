@@ -990,7 +990,10 @@ setTimeout(netSendHello,200);
 
 /* ---------------- DEBUG CONSOLE (Right Shift) ---------------- */
 const dbg={open:false,fps:0,frames:0,acc:0,log:[],history:[],hIndex:0,prev:player.pos.clone(),prevT:performance.now(),speed:0};
-const DEBUG_PASSWORD='rivalsgood123';
+// Do not store the debug password itself in the public client. This is only
+// obfuscation, not real security: anything shipped to a browser can be
+// inspected. A server-side verifier is required for a truly private console.
+const DEBUG_PASSWORD_HASH='9b957b1d705f13eef55410bc0c7138238b7d7339f01aa6ab850657bb3130d13f';
 let dbgAuthed=false;
 try{dbgAuthed=sessionStorage.getItem('beathim-debug-auth')==='1';}catch(error){dbgAuthed=false;}
 const dbgAuth=document.createElement('div');
@@ -1134,8 +1137,11 @@ function dbgShowAuth(show){
     dbgPass.focus();
   }else dbgPass.blur();
 }
-function dbgUnlock(){
-  if(dbgPass.value!==DEBUG_PASSWORD){
+async function dbgUnlock(){
+  const bytes=new TextEncoder().encode(dbgPass.value);
+  const digest=await crypto.subtle.digest('SHA-256',bytes);
+  const hash=Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(hash!==DEBUG_PASSWORD_HASH){
     dbgAuthMsg.textContent='WRONG PASSWORD';
     dbgPass.value='';
     dbgPass.focus();
