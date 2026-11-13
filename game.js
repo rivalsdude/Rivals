@@ -212,15 +212,53 @@ function startGame(mode){
   netSendHello();netSendState();
 }
 function resetBot(b){ b.root.position.copy(b.home); b.hp=100; b.alive=true; b.root.visible=true; }
+function countdownElement(){
+  let element=document.getElementById('countdown');
+  if(!element){
+    // Older cached HTML may not contain the overlay yet, so create it here too.
+    element=document.createElement('div');
+    element.id='countdown';
+    element.setAttribute('aria-hidden','true');
+    document.body.appendChild(element);
+  }
+  element.style.position='fixed';
+  element.style.inset='0';
+  element.style.display='none';
+  element.style.alignItems='center';
+  element.style.justifyContent='center';
+  element.style.pointerEvents='none';
+  element.style.zIndex='70';
+  element.style.background='radial-gradient(circle at 50% 50%, rgba(4,8,20,.52), rgba(4,8,20,.16) 46%, rgba(4,8,20,0) 70%)';
+  return element;
+}
 function showCountdown(text,go=false){
-  const element=document.getElementById('countdown');
-  if(!element)return;
-  element.classList.add('show');
-  element.innerHTML='<span'+(go?' class="go"':'')+'>'+text+'</span>';
+  const element=countdownElement();
+  element.style.display='flex';
+  element.innerHTML='<div class="count-inner"><small>ROUND '+(single.round||1)+' / 5</small><span'+(go?' class="go"':'')+'>'+text+'</span></div>';
+  const span=element.querySelector('span');
+  if(span){
+    span.style.fontSize=go?'clamp(64px,12vw,132px)':'clamp(96px,18vw,200px)';
+    span.style.fontWeight='900';
+    span.style.lineHeight='1';
+    span.style.display='block';
+    span.style.color=go?'#7dffb5':'#fff';
+    span.style.webkitTextStroke='2px rgba(4,9,20,.92)';
+    span.style.textShadow='0 0 18px rgba(6,16,31,.95),0 0 38px rgba(54,217,255,.95),0 10px 46px rgba(0,0,0,.8)';
+  }
+  const small=element.querySelector('small');
+  if(small){
+    small.style.display='block';
+    small.style.marginBottom='8px';
+    small.style.fontSize='13px';
+    small.style.fontWeight='800';
+    small.style.letterSpacing='.3em';
+    small.style.color='#cdeaff';
+    small.style.textShadow='0 2px 10px rgba(0,0,0,.9)';
+  }
 }
 function hideCountdown(){
   const element=document.getElementById('countdown');
-  if(element){element.classList.remove('show');element.innerHTML='';}
+  if(element){element.classList.remove('show');element.style.display='none';element.innerHTML='';}
 }
 function startSingleRound(){
   single.active=true;single.roundOver=false;

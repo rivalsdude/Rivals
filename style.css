@@ -173,8 +173,11 @@ body.relay-offline #onlineBadge { color:#7b83a3; }
 .dbg-aimsel { padding: 3px 5px; font: inherit; font-size: 9px; letter-spacing: .06em; color: #dbe6ff; background: #101a36; border: 1px solid rgba(120,180,255,.3); border-radius: 5px; }
 
 /* ---- round countdown ---- */
-#countdown { display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; pointer-events:none; }
+#countdown { display:none; position:fixed; inset:0; z-index:70; align-items:center; justify-content:center; pointer-events:none; text-align:center; background:radial-gradient(circle at 50% 50%, rgba(4,8,20,.52), rgba(4,8,20,.16) 46%, rgba(4,8,20,0) 70%); }
 #countdown.show { display:flex; }
-#countdown span { font-size:clamp(96px,18vw,200px); font-weight:900; letter-spacing:-.04em; color:#fff; text-shadow:0 0 34px rgba(98,207,255,.9),0 10px 46px rgba(0,0,0,.6); animation:countdownPop .45s ease-out; }
-#countdown span.go { font-size:clamp(64px,12vw,132px); color:#7dffb5; text-shadow:0 0 40px rgba(125,255,181,.95),0 10px 46px rgba(0,0,0,.6); }
-@keyframes countdownPop { from { transform:scale(1.55); opacity:0; } 60% { opacity:1; } to { transform:scale(1); opacity:1; } }
+#countdown .count-inner { display:flex; flex-direction:column; align-items:center; gap:2px; }
+#countdown small { display:block; margin-bottom:10px; font-family:Inter, ui-sans-serif, system-ui, sans-serif; font-size:13px; font-weight:800; letter-spacing:.3em; color:#cdeaff; text-shadow:0 2px 10px rgba(0,0,0,.9); }
+#countdown span { display:block; line-height:1; font-size:clamp(96px,18vw,200px); font-weight:900; letter-spacing:-.04em; color:#fff; -webkit-text-stroke:2px rgba(4,9,20,.92); text-shadow:0 0 18px rgba(6,16,31,.95), 0 0 38px rgba(54,217,255,.95), 0 10px 46px rgba(0,0,0,.8); animation:countdownPop .45s ease-out; }
+#countdown span.go { font-size:clamp(64px,12vw,132px); color:#7dffb5; text-shadow:0 0 18px rgba(6,16,31,.95), 0 0 40px rgba(125,255,181,.95), 0 10px 46px rgba(0,0,0,.8); }
+/* Transform-only so the number is visible even if animations are paused. */
+@keyframes countdownPop { from { transform:scale(1.5); } to { transform:scale(1); } }
