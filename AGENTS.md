@@ -55,6 +55,15 @@ URL options:
 The lobby list header shows the connection state: `ONLINE · MAIN`, `CONNECTING…`
 or `LOCAL ONLY` (relay unreachable — only tabs in the same browser will see you).
 
+### Game modes
+
+Only two modes are playable: **1v1 PVP duels** and **Single Player**. The old
+free-for-all Arena / Battleground buttons (several bots at once) are gone.
+Arena and Battleground now exist only as PVP duel maps, chosen during duel
+setup. `startGame('arena')` / `startGame('battleground')` without
+`duel.active` falls back to the lobby, and bots are only visible during Single
+Player.
+
 ### PVP duels
 
 The lobby shows a player list (`#lobbyPlayerList`). Clicking `PVP` there — or
@@ -100,6 +109,21 @@ quick melee or scythe dash, and the opponent AI does not move or shoot.
 Bots use a line-of-sight ray (`botHasLineOfSight`) before firing, so arena
 cover actually blocks enemy bullets. When a bot loses sight of the player it
 picks a new route instead of shooting through the wall.
+
+The opponent also moves like the player: it sprints in bursts and slides to
+close the gap or dodge (`aiSprint`, `aiSlideTime`, `aiSlideDir`,
+`aiSlideCooldown`). A sliding bot is faster and crouches low (`scale.y = .5`,
+forward lean), which makes it harder to hit. Hard bots sprint and slide more
+often, slide for longer, and prefer routes toward the player over distant
+cover.
+
+### Weapons and clips
+
+Every gun has a detachable magazine (`weaponClip` in the first-person
+viewmodel, magazine parts on the third-person gun models). Reloading plays a
+clip animation: the empty magazine drops out during the first half of the
+reload and a fresh one slides in during the second half. The HUD ammo readout
+is labelled `CLIP <mag> / <reserve>`.
 
 ## Always push changes
 
