@@ -26,6 +26,10 @@ unique `mid`, so copies arriving over two channels are only handled once.
   lose track of it
 - each tab stores `beathim-client-id`, `beathim-skin` and `beathim-name` in
   `sessionStorage`, so a reload keeps the same identity
+- saved profiles live in `localStorage` (`beathim-profiles`): name, skin,
+  tag color, loadout, difficulty and settings. The profile picker in
+  `#nameGate` loads one, and every change updates the active profile. The live
+  identity for a tab still stays in `sessionStorage`, so two tabs can differ
 - on load a display-name gate (`#nameGate`) asks for a name, pre-filled with the
   one this tab used last time; renaming re-sends `hello` + `state` so other
   players' name tags update
@@ -35,6 +39,12 @@ unique `mid`, so copies arriving over two channels are only handled once.
 - skins are re-rolled automatically if two tabs pick the same one
 - remote players fade out after ~20s without a state message
 - shots/hits are relayed; each tab owns its own HP and respawns
+- a `shot` message carries the muzzle point and impact point, so other clients
+  draw an enemy tracer that starts at the shooter's gun
+- local tracers start at the viewmodel muzzle, not the centre of the screen;
+  damage still comes from the crosshair ray
+- `state` includes the held `slot`, which swaps the gun model shown on remote
+  avatars (rifle, pistol, sniper, scythe)
 - bots are still simulated per tab (they are not synced)
 
 URL options:
@@ -75,6 +85,10 @@ The old shooting-range dummy targets are removed. The lobby's Single Player
 button starts five rounds against computer players, with Easy / Hard
 difficulty. Existing bots provide movement, strafing, aiming, shooting, and
 reload behavior; a final report appears after the five-round run.
+
+Bots use a line-of-sight ray (`botHasLineOfSight`) before firing, so arena
+cover actually blocks enemy bullets. When a bot loses sight of the player it
+picks a new route instead of shooting through the wall.
 
 ## Always push changes
 
