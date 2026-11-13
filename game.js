@@ -211,19 +211,65 @@ function startGame(mode){
 function resetBot(b){ b.root.position.copy(b.home); b.hp=100; b.alive=true; b.root.visible=true; }
 function startSingleRound(){
   single.active=true;single.roundOver=false;
-  bots.forEach((bot,index)=>{bot.root.visible=index===single.botIndex;bot.alive=index===single.botIndex;bot.hp=100;bot.root.position.copy(bot.home);bot.root.scale.set(1,1,1);bot.aiPath=[];bot.aiGoalTimer=0;bot.aiAmmo=single.difficulty==='hard'?8:6;});
+  bots.forEach((bot,index)=>{
+    bot.root.visible=index===single.botIndex;
+    bot.alive=index===single.botIndex;
+    bot.hp=100;
+    bot.root.position.copy(bot.home);
+    bot.root.scale.set(1,1,1);
+    bot.aiPath=[];bot.aiGoal=null;bot.aiGoalTimer=0;bot.aiShotCooldown=0;
+    bot.aiLosTimer=0;bot.aiLos=false;bot.aiReload=0;bot.aiSeekTimer=0;
+    bot.aiSprint=0;bot.aiCrouchTimer=0;
+    bot.aiAmmo=single.difficulty==='hard'?8:6;
+  });
   const bot=bots[single.botIndex];
-  if(bot){bot.root.position.set(0,0,-18);bot.home.set(0,0,-18);bot.root.visible=true;bot.alive=true;bot.hp=100;}
-  player.hp=100;player.pos.set(0,2.2,18);player.yaw=player.cameraYaw=Math.PI;player.pitch=0;
+  if(bot){
+    bot.root.position.set(0,0,-18);
+    bot.home.set(0,0,-18);
+    bot.root.rotation.set(0,0,0);
+    bot.root.visible=true;bot.alive=true;bot.hp=100;
+    faceBotTowardPlayer(bot);
+  }
+  // Both sides restart from the same round-one spawn points with a full kit.
+  player.hp=100;
+  player.pos.set(0,2.2,18);
+  player.yaw=player.cameraYaw=Math.PI;
+  player.pitch=0;
+  player.vertical=0;player.grounded=true;player.doubleJumpUsed=false;
+  player.sliding=false;player.crouching=false;player.slideTime=0;
+  player.reloading=false;player.aimHold=false;player.aimKey=false;
+  player.quickMeleeTimer=0;player.prevSlot=null;player.scytheCooldown=0;
+  player.ammo[0].mag=player.ammo[0].max;player.ammo[0].reserve=72;
+  player.ammo[1].mag=player.ammo[1].max;player.ammo[1].reserve=48;
+  player.ammo[2].mag=player.ammo[2].max;player.ammo[2].reserve=24;
+  player.grenades=3;
+  forceWeapon(player.primaryChoice);
+  updateAmmoHud();
   healthBarEl.style.width='100%';hpTextEl.textContent=100;
-  const info=document.getElementById('roundInfo');if(info)info.innerHTML='SINGLE PLAYER<br><span style="color:#ffd45c">ROUND '+single.round+' / 5 · '+single.difficulty.toUpperCase()+'</span>';
+  const info=document.getElementById('roundInfo');
+  if(info)info.innerHTML='SINGLE PLAYER<br> <span style="color:#ffd45c">ROUND '+single.round+' / 5 · '+single.wins+' WON · '+single.difficulty.toUpperCase()+'</span>';
 }
 function showSingleReport(){
   single.active=false;gameMode='lobby';
+  bots.forEach(bot=>{bot.root.visible=false;});
   const report=document.getElementById('singleReport');
   if(report){report.querySelector('h2').textContent=single.wins>=3?'MISSION COMPLETE':'MISSION FAILED';report.querySelector('p').textContent='Rounds won: '+single.wins+' / 5 · Difficulty: '+single.difficulty.toUpperCase();report.classList.add('open');}
 }
-function nextSingleRound(){single.wins++;single.round++;if(single.round>5){showSingleReport();return;}single.botIndex=(single.botIndex+1)%bots.length;startSingleRound();}
+function endSingleRound(won){
+  if(!single.active||single.roundOver)return;
+  single.roundOver=true;
+  showMessage(won?'ROUND WON':'ROUND LOST');
+  setTimeout(()=>advanceSingleRound(won),1300);
+}
+function advanceSingleRound(won){
+  if(!single.active)return;
+  if(won)single.wins++;
+  single.round++;
+  if(single.round>5){showSingleReport();return;}
+  single.botIndex=(single.botIndex+1)%bots.length;
+  startSingleRound();
+  showMessage('ROUND '+single.round);
+}
 
 function botGridPoint(x,z){return {x:Math.max(-27,Math.min(27,Math.round(x/3)*3)),z:Math.max(-27,Math.min(27,Math.round(z/3)*3))};}
 function botGridWalkable(x,z){const probe=new THREE.Vector3(x,2.2,z);return !blocked(probe);}
@@ -248,6 +294,7 @@ function faceBotTowardPlayer(bot){
   bot.root.rotation.set(0,Math.atan2(dx,dz),0);
 }
 function updateSingleBot(bot,dt){
+  if(!single.active||single.roundOver)return;
   if(!bot.aiGoal||bot.aiGoalTimer<=0){
     const cover=[[-18,-12],[18,-12],[-18,12],[18,12],[-8,-7],[8,7],[0,-20],[0,20]];
     const point=Math.random()<.45?cover[Math.floor(Math.random()*cover.length)]:[
@@ -299,7 +346,7 @@ function updateSingleBot(bot,dt){
     if(hit){
       const damage=single.difficulty==='hard'?8:5;player.hp=Math.max(0,player.hp-damage);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;
       bot.aiAmmo--;
-      if(!player.hp){single.roundOver=true;showMessage('ROUND LOST');setTimeout(showSingleReport,900);}
+      if(!player.hp){endSingleRound(false);}
     }
   }else if(!canShoot){
     // No firing lane: move to a new angle instead of shooting through cover.
@@ -308,7 +355,7 @@ function updateSingleBot(bot,dt){
   }
 }
 function spawnAmmoDrop(position){const mesh=new THREE.Mesh(new THREE.BoxGeometry(.55,.28,.35),mat(0x2b8fbb,cyan));mesh.castShadow=true;mesh.position.set(position.x,.35,position.z);scene.add(mesh);ammoPickups.push({mesh,amount:24});}
-function damageBot(b,damage){ b.hp-=damage; if(b.hp<=0){if(gameMode==='single'&&single.active){b.alive=false;b.root.visible=false;showMessage('ROUND WON');setTimeout(nextSingleRound,900);return;}const dropPos=b.root.position.clone();b.alive=false;b.root.visible=false;b.respawn=3; if(b.team==='red'){player.blue++;blueScoreEl.textContent=player.blue;spawnAmmoDrop(dropPos);} else {player.red++;redScoreEl.textContent=player.red;} showMessage('ELIMINATED');} }
+function damageBot(b,damage){ b.hp-=damage; if(b.hp<=0){if(gameMode==='single'&&single.active){if(single.roundOver)return;b.alive=false;b.root.visible=false;endSingleRound(true);return;}const dropPos=b.root.position.clone();b.alive=false;b.root.visible=false;b.respawn=3; if(b.team==='red'){player.blue++;blueScoreEl.textContent=player.blue;spawnAmmoDrop(dropPos);} else {player.red++;redScoreEl.textContent=player.red;} showMessage('ELIMINATED');} }
 function isViewmodelObject(object){
   let current=object;
   while(current){if(current===weaponView||current===camera)return true;current=current.parent;}
@@ -483,7 +530,7 @@ function scytheDash(){
   if(target&&target.alive&&player.pos.distanceTo(target.root.position)<3.8){damageBot(target,25);showHit(25);showMessage('SCYTHE HIT');}
   else showMessage(aimDir.y>.15?'UPWARD DASH':aimDir.y<-.15?'DOWNWARD DASH':'DASH');
 }
-function useWeapon(){ if(player.reloading)return; if(player.slot===3){weaponAnim.throw=1;throwGrenade();return;} if(player.slot===4){weaponAnim.swing=1.2;hitBot();return;} if(player.slot!==2){const ammoSlot=player.slot===5?2:player.slot;const a=player.ammo[ammoSlot];if(a.mag<=0){reloadWeapon();return;}a.mag--;updateAmmoHud();if(a.mag<=0){reloadWeapon();}weaponAnim.recoil=1;spawnTracer();}else weaponAnim.swing=1; hitBot(); }
+function useWeapon(){ if(player.reloading)return; if(gameMode==='single'&&single.roundOver)return; if(player.slot===3){weaponAnim.throw=1;throwGrenade();return;} if(player.slot===4){weaponAnim.swing=1.2;hitBot();return;} if(player.slot!==2){const ammoSlot=player.slot===5?2:player.slot;const a=player.ammo[ammoSlot];if(a.mag<=0){reloadWeapon();return;}a.mag--;updateAmmoHud();if(a.mag<=0){reloadWeapon();}weaponAnim.recoil=1;spawnTracer();}else weaponAnim.swing=1; hitBot(); }
 function doQuickMelee(){ if(gameMode==="lobby"||player.quickMeleeTimer>0)return; const current=player.slot; const target=duel.active?duel.weapons[2]:(player.meleeChoice===4?4:2); if(current===target){weaponAnim.swing=1.2;hitBot();return;} player.prevSlot=current; player.slot=target; player.aimHold=false; player.aimKey=false; player.reloading=false; updateAim(); const w=weapons[player.slot]; weaponName.innerHTML=w.name+(player.slot===0?" <span style=\"color:#6cd9ff\">▰▰▰</span>":""); slotLabel.textContent=w.slot+" · "+(player.slot+1); updateAmmoHud(); rebuildWeapon(); showMessage(w.name); weaponAnim.swing=1.2; hitBot(); player.quickMeleeTimer=0.5; }
 function showMessage(t){ const el=document.getElementById('message');el.textContent=t;el.style.opacity=1;clearTimeout(showMessage.t);showMessage.t=setTimeout(()=>el.style.opacity=0,650); }
 const move=new THREE.Vector3(), clock=new THREE.Clock();
@@ -642,7 +689,7 @@ function update(dt){
   if(weaponAnim.inspect>0){const p=1-weaponAnim.inspect/1.35;const lift=Math.sin(Math.min(1,p)*Math.PI);weaponView.position.x+=((player.aiming?.30:.48)+lift*.2-weaponView.position.x)*Math.min(1,dt*10);weaponView.position.y+=((player.aiming?-.34:-.42)+lift*.22-weaponView.position.y)*Math.min(1,dt*10);weaponView.position.z+=((player.aiming?-.64:-.82)-lift*.12-weaponView.position.z)*Math.min(1,dt*10);weaponView.rotation.y+=(lift*.6-weaponView.rotation.y)*Math.min(1,dt*10);weaponView.rotation.z+=(-lift*.5-weaponView.rotation.z)*Math.min(1,dt*10);}else{weaponView.rotation.y*=Math.max(0,1-dt*12);weaponView.rotation.z*=Math.max(0,1-dt*12);}
   const fireRate=weapons[player.slot].rate;if(shooting&&performance.now()-lastShot>fireRate){lastShot=performance.now();useWeapon();}
   const worldTime=performance.now()*.001; for(const p of [...ammoPickups]){if(Math.hypot(player.pos.x-p.mesh.position.x,player.pos.z-p.mesh.position.z)<3){const target=player.slot===5?2:player.slot<2?player.slot:0;player.ammo[target].reserve+=p.amount;scene.remove(p.mesh);ammoPickups.splice(ammoPickups.indexOf(p),1);updateAmmoHud();showMessage('AMMO +'+p.amount);}}
-  if(!duel.active)for(const b of bots){if(gameMode==='single'&&b!==bots[single.botIndex]){b.root.visible=false;continue;}if(!b.alive){b.respawn-=dt;if(b.respawn<=0)resetBot(b);continue;} if(gameMode==='single'){updateSingleBot(b,dt);continue;} if(gameMode==='range'){if(b.team!=='target'){b.root.visible=false;continue;} faceBotTowardPlayer(b);continue;} const to=player.pos.clone().sub(b.root.position); to.y=0; if(to.length()<22){const forward=to.clone().normalize();const side=new THREE.Vector3(-forward.z,0,forward.x);b.root.position.addScaledVector(forward,dt*.55);b.root.position.addScaledVector(side,Math.sin(worldTime*1.8+b.phase)*dt*.8); b.shoot-=dt; if(b.shoot<=0&&botHasLineOfSight(b,player.pos)){b.shoot=(single.difficulty==='hard'?1.05:1.7)+Math.random()*(single.difficulty==='hard'?1.2:2);{const botHit=Math.random()<(single.difficulty==='hard'?.55:.28);const botTo=player.pos.clone();if(!botHit){botTo.x+=(Math.random()*2-1)*2.6;botTo.z+=(Math.random()*2-1)*2.6;}spawnBulletTracer(botMuzzlePosition(b),botTo,TRACER_ENEMY,.03);if(botHit){player.hp=Math.max(0,player.hp-8);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;if(!player.hp){if(gameMode==='single'&&single.active){single.roundOver=true;showMessage('ROUND LOST');setTimeout(showSingleReport,900);}else{player.hp=100;player.pos.set(0,2.2,27);healthBarEl.style.width='100%';hpTextEl.textContent=100;showMessage('RESPAWNED');}}}}}}else{b.root.position.x=b.home.x+Math.sin(worldTime*.7+b.phase)*3.2*b.strafe;b.root.position.z=b.home.z+Math.cos(worldTime*.55+b.phase)*2.2;} b.root.position.x=Math.max(-33,Math.min(33,b.root.position.x));b.root.position.z=Math.max(-33,Math.min(33,b.root.position.z));faceBotTowardPlayer(b);}
+  if(!duel.active)for(const b of bots){if(gameMode==='single'&&b!==bots[single.botIndex]){b.root.visible=false;continue;}if(!b.alive){if(gameMode==='single')continue;b.respawn-=dt;if(b.respawn<=0)resetBot(b);continue;} if(gameMode==='single'){updateSingleBot(b,dt);continue;} if(gameMode==='range'){if(b.team!=='target'){b.root.visible=false;continue;} faceBotTowardPlayer(b);continue;} const to=player.pos.clone().sub(b.root.position); to.y=0; if(to.length()<22){const forward=to.clone().normalize();const side=new THREE.Vector3(-forward.z,0,forward.x);b.root.position.addScaledVector(forward,dt*.55);b.root.position.addScaledVector(side,Math.sin(worldTime*1.8+b.phase)*dt*.8); b.shoot-=dt; if(b.shoot<=0&&botHasLineOfSight(b,player.pos)){b.shoot=(single.difficulty==='hard'?1.05:1.7)+Math.random()*(single.difficulty==='hard'?1.2:2);{const botHit=Math.random()<(single.difficulty==='hard'?.55:.28);const botTo=player.pos.clone();if(!botHit){botTo.x+=(Math.random()*2-1)*2.6;botTo.z+=(Math.random()*2-1)*2.6;}spawnBulletTracer(botMuzzlePosition(b),botTo,TRACER_ENEMY,.03);if(botHit){player.hp=Math.max(0,player.hp-8);healthBarEl.style.width=player.hp+'%';hpTextEl.textContent=player.hp;if(!player.hp){if(gameMode==='single'&&single.active){endSingleRound(false);}else{player.hp=100;player.pos.set(0,2.2,27);healthBarEl.style.width='100%';hpTextEl.textContent=100;showMessage('RESPAWNED');}}}}}}else{b.root.position.x=b.home.x+Math.sin(worldTime*.7+b.phase)*3.2*b.strafe;b.root.position.z=b.home.z+Math.cos(worldTime*.55+b.phase)*2.2;} b.root.position.x=Math.max(-33,Math.min(33,b.root.position.x));b.root.position.z=Math.max(-33,Math.min(33,b.root.position.z));faceBotTowardPlayer(b);}
   beacon.intensity=4.5+Math.sin(performance.now()*.004)*1.5;
 }
 /* ---------------- MULTIPLAYER (two tabs of the same browser) ---------------- */
