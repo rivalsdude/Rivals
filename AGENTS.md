@@ -90,7 +90,8 @@ Either side ending a round (player eliminated or opponent eliminated) advances
 to the next round after a short pause. `startSingleRound` resets both fighters
 to the round-one spawn points (player z=+18, opponent z=-18), refills HP, mags
 and grenades, and clears AI path/aim state. After round five the report shows
-rounds won out of five.
+rounds won out of five. The top-centre scoreboard shows rounds won (blue) and
+rounds lost (red) during Single Player.
 
 Bots use a line-of-sight ray (`botHasLineOfSight`) before firing, so arena
 cover actually blocks enemy bullets. When a bot loses sight of the player it

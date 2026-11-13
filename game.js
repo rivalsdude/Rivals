@@ -39,7 +39,7 @@ const WEAPON_DAMAGE={0:{body:9,head:12},1:{body:6,head:9},2:{body:20,head:20},3:
 function damageFor(slot,headshot){const values=WEAPON_DAMAGE[slot]||WEAPON_DAMAGE[0];return headshot?values.head:values.body;}
 const player={pos:new THREE.Vector3(0,2.2,27), yaw:0, cameraYaw:0, avatarYaw:0, pitch:0, hp:100, blue:0, red:0, slot:0, meleeChoice:2, primaryChoice:0, aimHold:false, aimKey:false, reloading:false, reloadTime:0, reloadTotal:0, reloadSlot:0, walkPhase:0, walkBlend:0, sensitivity:1, scopeSensitivity:.5, ammo:{0:{mag:24,max:24,reserve:72},1:{mag:12,max:12,reserve:48},2:{mag:4,max:4,reserve:24}}, vertical:0, grounded:true, crouching:false, sliding:false, slideTime:0, slideCooldown:0, aiming:false, scytheCooldown:0, grenades:3, doubleJumpUsed:false, prevSlot:null, quickMeleeTimer:0, fly:false, flySpeed:14}; const weaponAnim={recoil:0,swing:0,throw:0,inspect:0}; camera.position.copy(player.pos);
 const ammoPickups=[]; let gameMode='lobby';
-const single={active:false,difficulty:'easy',round:0,wins:0,botIndex:0,roundOver:false};
+const single={active:false,difficulty:'easy',round:0,wins:0,losses:0,botIndex:0,roundOver:false};
 function updateAmmoHud(){if(player.slot<2||player.slot===5){const a=player.slot===5?player.ammo[2]:player.ammo[player.slot];ammoText.textContent='AMMO '+a.mag+' / '+a.reserve;}else if(player.slot===3)ammoText.textContent='AMMO '+player.grenades;else if(player.slot===4)ammoText.textContent='DASH READY';else ammoText.textContent='CLOSE RANGE';}
 updateAmmoHud();
 // First-person weapon viewmodel: simple readable silhouettes that swap with the loadout.
@@ -181,6 +181,8 @@ lobbyBox(12,6,.5,0,3,-21,0x1d315f);lobbyBox(10,.35,.3,0,6.4,-20.7,0x58dfff,cyan)
 const lobbyAvatar=new THREE.Group();const avatarLegMat=mat(0x20283c);const avatarLeftLeg=new THREE.Mesh(new THREE.BoxGeometry(.27,.85,.34),avatarLegMat);avatarLeftLeg.position.set(-.23,.43,0);const avatarRightLeg=new THREE.Mesh(new THREE.BoxGeometry(.27,.85,.34),avatarLegMat);avatarRightLeg.position.set(.23,.43,0);const avatarBody=new THREE.Mesh(new THREE.BoxGeometry(1,1.35,.65),mat(0x41a9d8));avatarBody.position.y=1.4;const avatarArmMat=mat(0x41a9d8);const avatarLeftArm=new THREE.Mesh(new THREE.BoxGeometry(.25,.95,.32),avatarArmMat);avatarLeftArm.position.set(-.63,1.4,0);const avatarRightArm=new THREE.Mesh(new THREE.BoxGeometry(.25,.95,.32),avatarArmMat);avatarRightArm.position.set(.63,1.4,0);const avatarHead=new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),mat(0xf0c2ae));avatarHead.position.y=2.05;const avatarFace=new THREE.Mesh(new THREE.BoxGeometry(.42,.16,.035),mat(0x18284c,cyan));avatarFace.position.set(0,2.08,-.365);lobbyAvatar.add(avatarLeftLeg,avatarRightLeg,avatarBody,avatarLeftArm,avatarRightArm,avatarHead,avatarFace);lobbyGroup.add(lobbyAvatar);const lobbyLight=new THREE.HemisphereLight(0xeaf2ff,0x4564a1,3.2);lobbyGroup.add(lobbyLight);const lobbySun=new THREE.DirectionalLight(0xffffff,4);lobbySun.position.set(-10,22,8);lobbySun.castShadow=true;lobbyGroup.add(lobbySun);player.pos.set(0,2.2,6);
 function startGame(mode){
   gameMode=mode;
+  if(mode==='single'){single.round=1;single.wins=0;single.losses=0;single.botIndex=0;}
+  if(mode==='arena'||mode==='battleground'){player.blue=0;player.red=0;blueScoreEl.textContent='0';redScoreEl.textContent='0';}
   const arenaLike=mode==='arena'||mode==='single';
   document.querySelector('.hud').classList.remove('lobby');
   player.meleeChoice=Number(document.getElementById('loadoutMelee').value);
@@ -245,6 +247,8 @@ function startSingleRound(){
   player.grenades=3;
   forceWeapon(player.primaryChoice);
   updateAmmoHud();
+  blueScoreEl.textContent=single.wins;
+  redScoreEl.textContent=single.losses;
   healthBarEl.style.width='100%';hpTextEl.textContent=100;
   const info=document.getElementById('roundInfo');
   if(info)info.innerHTML='SINGLE PLAYER<br> <span style="color:#ffd45c">ROUND '+single.round+' / 5 · '+single.wins+' WON · '+single.difficulty.toUpperCase()+'</span>';
@@ -258,12 +262,15 @@ function showSingleReport(){
 function endSingleRound(won){
   if(!single.active||single.roundOver)return;
   single.roundOver=true;
+  if(won)single.wins++;else single.losses++;
+  // Top scoreboard: blue = rounds you won, red = rounds the opponent won.
+  blueScoreEl.textContent=single.wins;
+  redScoreEl.textContent=single.losses;
   showMessage(won?'ROUND WON':'ROUND LOST');
-  setTimeout(()=>advanceSingleRound(won),1300);
+  setTimeout(()=>advanceSingleRound(),1300);
 }
-function advanceSingleRound(won){
+function advanceSingleRound(){
   if(!single.active)return;
-  if(won)single.wins++;
   single.round++;
   if(single.round>5){showSingleReport();return;}
   single.botIndex=(single.botIndex+1)%bots.length;
@@ -534,7 +541,7 @@ function useWeapon(){ if(player.reloading)return; if(gameMode==='single'&&single
 function doQuickMelee(){ if(gameMode==="lobby"||player.quickMeleeTimer>0)return; const current=player.slot; const target=duel.active?duel.weapons[2]:(player.meleeChoice===4?4:2); if(current===target){weaponAnim.swing=1.2;hitBot();return;} player.prevSlot=current; player.slot=target; player.aimHold=false; player.aimKey=false; player.reloading=false; updateAim(); const w=weapons[player.slot]; weaponName.innerHTML=w.name+(player.slot===0?" <span style=\"color:#6cd9ff\">▰▰▰</span>":""); slotLabel.textContent=w.slot+" · "+(player.slot+1); updateAmmoHud(); rebuildWeapon(); showMessage(w.name); weaponAnim.swing=1.2; hitBot(); player.quickMeleeTimer=0.5; }
 function showMessage(t){ const el=document.getElementById('message');el.textContent=t;el.style.opacity=1;clearTimeout(showMessage.t);showMessage.t=setTimeout(()=>el.style.opacity=0,650); }
 const move=new THREE.Vector3(), clock=new THREE.Clock();
-document.getElementById('playMenu').onclick=()=>{document.getElementById('start').classList.add('choosing');document.getElementById('playMenu').style.display='none';document.getElementById('modePicker').style.display='block';document.getElementById('lobbyText').textContent='Choose where you want to play.';}; document.getElementById('arenaMode').onclick=()=>startGame('arena'); document.getElementById('battlegroundMode').onclick=()=>startGame('battleground'); document.getElementById('singleMode').onclick=()=>{single.difficulty=document.getElementById('singleDifficulty').value;single.round=1;single.wins=0;single.botIndex=0;startGame('single');}; document.getElementById('singleReportClose').onclick=()=>{document.getElementById('singleReport').classList.remove('open');enterLobby();}; document.getElementById('loadoutMelee').onchange=e=>{player.meleeChoice=Number(e.target.value);saveActiveProfile();}; document.getElementById('loadoutPrimary').onchange=e=>{player.primaryChoice=Number(e.target.value);saveActiveProfile();}; document.getElementById('singleDifficulty').onchange=e=>{single.difficulty=e.target.value;saveActiveProfile();};
+document.getElementById('playMenu').onclick=()=>{document.getElementById('start').classList.add('choosing');document.getElementById('playMenu').style.display='none';document.getElementById('modePicker').style.display='block';document.getElementById('lobbyText').textContent='Choose where you want to play.';}; document.getElementById('arenaMode').onclick=()=>startGame('arena'); document.getElementById('battlegroundMode').onclick=()=>startGame('battleground'); document.getElementById('singleMode').onclick=()=>{single.difficulty=document.getElementById('singleDifficulty').value;single.round=1;single.wins=0;single.losses=0;single.botIndex=0;startGame('single');}; document.getElementById('singleReportClose').onclick=()=>{document.getElementById('singleReport').classList.remove('open');enterLobby();}; document.getElementById('loadoutMelee').onchange=e=>{player.meleeChoice=Number(e.target.value);saveActiveProfile();}; document.getElementById('loadoutPrimary').onchange=e=>{player.primaryChoice=Number(e.target.value);saveActiveProfile();}; document.getElementById('singleDifficulty').onchange=e=>{single.difficulty=e.target.value;saveActiveProfile();};
 function toggleSettings(force){
   const open=force===undefined?!settings.classList.contains('open'):force;
   settings.classList.toggle('open',open);
@@ -1242,6 +1249,8 @@ function finishDuel(){
 }
 function enterLobby(){
   gameMode='lobby';
+  blueScoreEl.textContent='0';
+  redScoreEl.textContent='0';
   const roundEl=document.getElementById('roundInfo');
   if(roundEl)roundEl.innerHTML='ROUND 01<br><span style="color:#6cd9ff">TEAM DEATHMATCH</span>';
   document.querySelector('.hud').classList.add('lobby');
