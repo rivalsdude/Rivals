@@ -93,6 +93,10 @@ and grenades, and clears AI path/aim state. After round five the report shows
 rounds won out of five. The top-centre scoreboard shows rounds won (blue) and
 rounds lost (red) during Single Player.
 
+Every round starts with a 3-2-1-GO overlay (`#countdown`). While
+`single.countdown > 0`, both fighters are frozen: no movement, jumping, firing,
+quick melee or scythe dash, and the opponent AI does not move or shoot.
+
 Bots use a line-of-sight ray (`botHasLineOfSight`) before firing, so arena
 cover actually blocks enemy bullets. When a bot loses sight of the player it
 picks a new route instead of shooting through the wall.
