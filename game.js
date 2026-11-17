@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+import * as THREE from './engine.js';
 import { createNet } from './multiplayer.js?v=2';
 
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2b4f8c); scene.fog = new THREE.Fog(0x2b4f8c, 55, 140);
@@ -305,7 +305,7 @@ function startSingleRound(){
   // Both sides restart from the same round-one spawn points with a full kit.
   player.hp=100;
   player.pos.set(0,2.2,18);
-  player.yaw=player.cameraYaw=Math.PI;
+  player.yaw=player.cameraYaw=0;
   player.pitch=0;
   player.vertical=0;player.grounded=true;player.doubleJumpUsed=false;
   player.sliding=false;player.crouching=false;player.slideTime=0;
@@ -948,9 +948,17 @@ function paintNameTag(canvas,text,color){
   context.fillStyle='rgba(4,8,16,.55)';
   context.fillRect(0,0,256,64);
   context.font='bold '+(text.length>12?23:32)+'px Inter, system-ui, sans-serif';
+  // Babylon's right-handed billboard plane presents the texture from its
+  // back side, so pre-mirror the canvas text to keep the in-world label
+  // readable. The adapter also flips the plane vertically for the billboard
+  // orientation; keeping this correction here makes every label use the same
+  // readable raster regardless of its avatar's parent rotation.
+  context.save();
+  context.scale(-1,1);
   context.textAlign='center';context.textBaseline='middle';
   context.fillStyle=skinCss(color);
-  context.fillText(text,128,34);
+  context.fillText(text,-128,34);
+  context.restore();
 }
 function makeNameTag(text,color){
   const canvas=document.createElement('canvas');

@@ -1,11 +1,24 @@
 # Project instructions
 
-This is a static browser game with no build step (Three.js loaded from a CDN):
+This is a static browser game with no build step (Babylon.js loaded from a CDN):
 
 - `index.html` — markup/HUD only
 - `style.css` — all styling
 - `game.js` — the game module (ES module, imported by `index.html`)
+- `engine.js` — Three-compatible game API backed by a real Babylon.js engine
 - `multiplayer.js` — cross-tab networking (BroadcastChannel, localStorage fallback)
+
+### Babylon.js rendering
+
+- `index.html` loads the official Babylon.js UMD build from its CDN, with a
+  jsDelivr fallback before importing `game.js`.
+- `game.js` imports `./engine.js`; the adapter keeps the existing game logic's
+  small Three-style API while creating native Babylon engines, scenes, meshes,
+  materials, lights, shadows and picking objects.
+- The Babylon scene uses the right-handed coordinate system so the existing
+  `+Y` up / `-Z` forward camera and gameplay conventions remain unchanged.
+- New 3D systems can use native Babylon APIs through the adapter's
+  `BABYLON`, `bscene` and `bengine` exports. There is still no build step.
 
 ## Multiplayer
 
