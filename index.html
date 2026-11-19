@@ -8,15 +8,227 @@
 </head>
 <body>
   <div id="game"></div>
-  <div id="start"><div class="panel"><span class="tag">BEATHIM // LOBBY</span><h1>BEATHIM</h1><p id="lobbyText">Walk around the lobby, challenge a player to a 1v1, or start Single Player.</p><button id="playMenu">PLAY</button><div class="mode-picker" id="modePicker"><div class="loadout"><label>Primary<select id="loadoutPrimary"><option value="0">Assault Rifle</option><option value="5">Sniper</option></select></label><label>Secondary<select id="loadoutSecondary"><option>Handgun</option></select></label><label>Melee<select id="loadoutMelee"><option value="2">Fists</option><option value="4">Scythe</option></select></label><label>Utility<select id="loadoutUtility"><option>Grenade</option></select></label></div><label class="difficulty-choice">SINGLE PLAYER DIFFICULTY<select id="singleDifficulty"><option value="easy">EASY</option><option value="hard">HARD</option></select></label><button id="singleMode" class="secondary">SINGLE PLAYER · 5 ROUNDS</button></div><div id="lobbyPlayers"><h3>Players in lobby <span id="lobbyCount">1</span><span id="netStatus">LOCAL</span></h3><p id="onlineBadge"><i></i><b id="onlineTotal">1</b> ONLINE NOW</p><div id="lobbyCustomize"><b>CUSTOMIZE</b><label>NAME TAG <input id="nameTagColor" type="color" value="#4be3a2"></label><label>PLAYER SKIN <input id="playerSkinColor" type="color" value="#4be3a2"></label></div><div id="lobbyPlayerList"></div><p id="lobbyStatus"></p></div><p style="font-size:12px;margin-bottom:0">WASD / ↑↓ move · mouse look · Space jump · C crouch/slide</p></div></div>
   <div class="hud" aria-live="polite">
-    <div class="topbar"><div class="brand">BEATHIM<strong>NEON ARENA</strong></div><div class="score"><span class="blue" id="blueScore">0</span> <span style="color:#8a91ad">—</span> <span class="red" id="redScore">0</span><small id="onlineCount">1 ONLINE</small></div><div class="round" id="roundInfo">LOBBY<br><span style="color:#6cd9ff">1V1 PVP · SINGLE PLAYER</span></div></div>
-    <div class="crosshair" id="crosshair"></div><div id="scope"></div><div id="hitmark">✕</div><div id="damage">0</div><div id="message">ELIMINATED</div>
-    <button id="settingsButton">⚙ SETTINGS</button><button id="leaveDuel">LEAVE PVP</button>
+    <div class="topbar">
+      <div class="brand">BEATHIM<strong>NEON ARENA</strong></div>
+      <div class="score"><span class="blue" id="blueScore">0</span> <span style="color:#8a91ad">—</span> <span class="red" id="redScore">0</span><small id="onlineCount">1 ONLINE</small></div>
+      <div class="round" id="roundInfo">LOBBY<br><span style="color:#6cd9ff">1V1 PVP · SINGLE PLAYER</span></div>
+    </div>
+    <div class="crosshair" id="crosshair"></div><div id="scope"></div><div id="hitmark">✕</div><div id="killmark">ELIMINATED</div><div id="damage">0</div><div id="message">ELIMINATED</div>
+    <button id="settingsButton">⚙ SETTINGS</button>
+    <button id="leaveDuel">LEAVE PVP</button>
+    <button id="leaveMatch">LEAVE MATCH</button>
     <div class="help">WASD / ↑↓ MOVE · ←→ TURN · SHIFT SPRINT · SPACE JUMP · C CROUCH / SLIDE · HOLD E / RMB SCOPE · R RELOAD · SCYTHE: RMB DASH · 1-4 LOADOUT · P SETTINGS</div>
-    <div class="bottom"><div class="status"><div class="label">Armor / Health <span id="hpText">100</span></div><div class="health"><div id="healthBar"></div></div></div><div class="weapon"><small id="slotLabel">PRIMARY · 1</small><b id="weaponName">ASSAULT RIFLE <span style="color:#6cd9ff">▰▰▰</span></b><small id="ammoText">AMMO 24 / ∞</small></div></div>
+    <div class="bottom">
+      <div class="status"><div class="label">Armor / Health <span id="hpText">100</span></div><div class="health"><div id="healthBar"></div></div></div>
+      <div class="weapon"><small id="slotLabel">PRIMARY · 1</small><b id="weaponName">ASSAULT RIFLE <span style="color:#6cd9ff">▰▰▰</span></b><small id="ammoText">AMMO 24 / ∞</small></div>
+    </div>
   </div>
-<div id="countdown" aria-hidden="true"></div><div id="singleReport"><div class="name-card"><span class="tag">SINGLE PLAYER // FINAL REPORT</span><h2>MISSION COMPLETE</h2><p>Rounds won: 0 / 5</p><button id="singleReportClose">RETURN TO LOBBY</button></div></div><div id="nameGate"><div class="name-card"><span class="tag">BEATHIM // PLAYER</span><h2>CHOOSE YOUR DISPLAY NAME</h2><p>Everyone you play with sees this above your head.</p><label class="profile-pick">SAVED PROFILE<select id="profileSelect"><option value="">— NEW PROFILE —</option></select></label><input id="nameInput" maxlength="16" autocomplete="off" spellcheck="false" placeholder="PLAYER 42" /><button id="nameConfirm">PLAY</button><button id="profileDelete" class="secondary" type="button">DELETE PROFILE</button></div></div><div id="duelSetup"><div class="name-card"><span class="tag">PVP SETUP</span><h2 id="duelSetupTitle">CHOOSE A MAP</h2><p id="duelSetupWho"></p><div id="duelStepMap"><div class="map-options"><button type="button" class="map-option" data-map="arena">ARENA</button><button type="button" class="map-option" data-map="battleground">BATTLEGROUND</button></div><button id="duelNext">NEXT</button><button id="duelCancel" class="secondary">CANCEL</button></div><div id="duelStepWeapons" hidden><p class="setup-hint">Choose one weapon for each category. Use keys 1-4 during PVP.</p><div class="weapon-options"><label>1 · PRIMARY<select id="duelPrimary"><option value="0">Assault Rifle</option><option value="5">Sniper</option></select></label><label>2 · SECONDARY<select id="duelSecondary"><option value="1">Handgun</option></select></label><label>3 · MELEE<select id="duelMelee"><option value="2">Fists</option><option value="4">Scythe</option></select></label><label>4 · UTILITY<select id="duelUtility"><option value="3">Grenade</option></select></label></div><button id="duelStart">START PVP</button><button id="duelBack" class="secondary">BACK</button></div></div></div><div id="duelPrompt"><span class="tag">PVP CHALLENGE</span><p id="duelPromptText">Player wants to PVP.</p><button id="duelAccept">ACCEPT</button><button id="duelDecline" class="secondary">DECLINE</button></div><div id="settings"><h2>GAME SETTINGS</h2><div class="setting"><label for="sensitivity">Sensitivity <span id="sensitivityValue">1.0</span></label><input id="sensitivity" type="range" min="0.4" max="2.4" step="0.1" value="1"></div><div class="setting"><label for="scopeSensitivity">Scope sensitivity <span id="scopeSensitivityValue">0.5</span></label><input id="scopeSensitivity" type="range" min="0.2" max="1.2" step="0.1" value="0.5"></div><div class="setting"><label for="crosshairColor">Crosshair color</label><select id="crosshairColor"><option value="#ffffff">White</option><option value="#6cd9ff">Cyan</option><option value="#ff6f91">Pink</option><option value="#9eff6c">Lime</option><option value="#ffd45c">Yellow</option></select></div><div class="setting"><label for="crosshairStyle">Crosshair style</label><select id="crosshairStyle"><option value="">Classic</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="plus">Plus</option></select></div><div class="setting"><label>Player profile</label><button id="profileOpen" type="button" style="width:100%;padding:9px;background:#263566;box-shadow:none">OPEN PROFILE / NAME</button></div><button id="closeSettings" style="width:100%;padding:9px;background:#263566;box-shadow:none">DONE</button></div>
+
+  <div id="start">
+    <div class="panel">
+      <span class="tag">BEATHIM // LOBBY</span>
+      <h1>BEATHIM</h1>
+      <p id="lobbyText">Walk around the lobby, challenge a player to a 1v1, or start Single Player.</p>
+      <button id="playMenu">PLAY</button>
+      <div class="mode-picker" id="modePicker">
+        <div class="lobby-modes">
+          <button id="singleMode" class="secondary">SINGLE PLAYER</button>
+          <button id="tdmMode" class="secondary">TEAM DEATHMATCH</button>
+          <button id="survivalMode" class="secondary">SURVIVAL</button>
+          <button id="gunGameMode" class="secondary">GUN GAME</button>
+          <button id="rangeMode" class="range-button">SHOOTING RANGE</button>
+        </div>
+        <label class="difficulty-choice">SINGLE PLAYER DIFFICULTY
+          <select id="singleDifficulty"><option value="easy">EASY</option><option value="hard">HARD</option></select>
+        </label>
+
+        <div class="picker-block">
+          <div class="picker-head"><b>PRIMARY</b><span>1</span></div>
+          <select id="loadoutPrimary" class="legacy-select" tabindex="-1" aria-hidden="true">
+            <option value="0">Assault Rifle</option><option value="5">Sniper</option>
+          </select>
+          <div class="weapon-icons" id="loadoutPrimaryIcons"></div>
+        </div>
+        <div class="picker-block compact">
+          <div class="picker-head"><b>SECONDARY</b><span>2</span></div>
+          <select id="loadoutSecondary" class="legacy-select" tabindex="-1" aria-hidden="true">
+            <option value="1">Handgun</option>
+          </select>
+          <div class="weapon-icons" id="loadoutSecondaryIcons"></div>
+        </div>
+        <div class="picker-block compact">
+          <div class="picker-head"><b>MELEE</b><span>3</span></div>
+          <select id="loadoutMelee" class="legacy-select" tabindex="-1" aria-hidden="true">
+            <option value="2">Fists</option><option value="4">Scythe</option>
+          </select>
+          <div class="weapon-icons" id="loadoutMeleeIcons"></div>
+        </div>
+        <div class="picker-block compact">
+          <div class="picker-head"><b>UTILITY</b><span>4</span></div>
+          <select id="loadoutUtility" class="legacy-select" tabindex="-1" aria-hidden="true">
+            <option value="3">Grenade</option>
+          </select>
+          <div class="weapon-icons" id="loadoutUtilityIcons"></div>
+        </div>
+      </div>
+
+      <div id="lobbyPlayers">
+        <h3>Players in lobby <span id="lobbyCount">1</span><span id="netStatus">LOCAL</span></h3>
+        <p id="onlineBadge"><i></i><b id="onlineTotal">1</b> ONLINE NOW</p>
+        <div id="lobbyCustomize">
+          <b>CUSTOMIZE</b>
+          <label>NAME TAG <input id="nameTagColor" type="color" value="#4be3a2"></label>
+          <label>PLAYER SKIN <input id="playerSkinColor" type="color" value="#4be3a2"></label>
+        </div>
+        <div id="lobbyPlayerList"></div>
+        <p id="lobbyStatus"></p>
+      </div>
+      <div class="lobby-links">
+        <button id="openLeaderboard" class="link-button">LEADERBOARD</button>
+        <button id="openProgress" class="link-button">DAILY QUESTS &amp; CHESTS <span id="keyBadge">0 🔑</span></button>
+      </div>
+      <p class="lobby-hint">WASD / ↑↓ move · mouse look · Space jump · C crouch/slide · 1-4 weapons</p>
+    </div>
+  </div>
+
+  <div id="countdown" aria-hidden="true"></div>
+
+  <div id="singleReport">
+    <div class="name-card">
+      <span class="tag">MATCH // FINAL REPORT</span>
+      <h2>MISSION COMPLETE</h2>
+      <p>Rounds won: 0 / 5</p>
+      <button id="singleReportClose">RETURN TO LOBBY</button>
+    </div>
+  </div>
+
+  <div id="nameGate">
+    <div class="name-card">
+      <span class="tag">BEATHIM // PLAYER</span>
+      <h2>CHOOSE YOUR DISPLAY NAME</h2>
+      <p>Everyone you play with sees this above your head.</p>
+      <label class="profile-pick">SAVED PROFILE<select id="profileSelect"><option value="">— NEW PROFILE —</option></select></label>
+      <input id="nameInput" maxlength="16" autocomplete="off" spellcheck="false" placeholder="PLAYER 42" />
+      <button id="nameConfirm">PLAY</button>
+      <button id="profileDelete" class="secondary" type="button">DELETE PROFILE</button>
+    </div>
+  </div>
+
+  <div id="duelSetup">
+    <div class="name-card wide-card">
+      <span class="tag">PVP SETUP</span>
+      <h2 id="duelSetupTitle">CHOOSE A MAP</h2>
+      <p id="duelSetupWho"></p>
+      <div id="duelStepMap">
+        <div class="map-options">
+          <button type="button" class="map-option" data-map="arena">ARENA</button>
+          <button type="button" class="map-option" data-map="battleground">BATTLEGROUND</button>
+        </div>
+        <button id="duelNext">NEXT</button>
+        <button id="duelCancel" class="secondary">CANCEL</button>
+      </div>
+      <div id="duelStepWeapons" hidden>
+        <p class="setup-hint">Choose one weapon for each category. Use keys 1-4 during PVP.</p>
+        <select id="duelPrimary" class="legacy-select" aria-hidden="true" tabindex="-1"><option value="0">Assault Rifle</option><option value="5">Sniper</option></select>
+        <select id="duelSecondary" class="legacy-select" aria-hidden="true" tabindex="-1"><option value="1">Handgun</option></select>
+        <select id="duelMelee" class="legacy-select" aria-hidden="true" tabindex="-1"><option value="2">Fists</option><option value="4">Scythe</option></select>
+        <select id="duelUtility" class="legacy-select" aria-hidden="true" tabindex="-1"><option value="3">Grenade</option></select>
+        <div class="duel-pickers">
+          <div class="picker-block compact"><div class="picker-head"><b>1 · PRIMARY</b></div><div class="weapon-icons" id="duelPrimaryIcons"></div></div>
+          <div class="picker-block compact"><div class="picker-head"><b>2 · SECONDARY</b></div><div class="weapon-icons" id="duelSecondaryIcons"></div></div>
+          <div class="picker-block compact"><div class="picker-head"><b>3 · MELEE</b></div><div class="weapon-icons" id="duelMeleeIcons"></div></div>
+          <div class="picker-block compact"><div class="picker-head"><b>4 · UTILITY</b></div><div class="weapon-icons" id="duelUtilityIcons"></div></div>
+        </div>
+        <button id="duelStart">START PVP</button>
+        <button id="duelBack" class="secondary">BACK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="duelPrompt">
+    <span class="tag">PVP CHALLENGE</span>
+    <p id="duelPromptText">Player wants to PVP.</p>
+    <button id="duelAccept">ACCEPT</button>
+    <button id="duelDecline" class="secondary">DECLINE</button>
+  </div>
+
+  <div id="settings">
+    <h2>GAME SETTINGS</h2>
+    <div class="setting">
+      <label for="sensitivity">SENSITIVITY <span id="sensitivityValue">1.0</span></label>
+      <input id="sensitivity" type="range" min="0.4" max="2.4" step="0.1" value="1">
+    </div>
+    <div class="setting">
+      <label for="scopeSensitivity">SCOPE SENSITIVITY <span id="scopeSensitivityValue">0.5</span></label>
+      <input id="scopeSensitivity" type="range" min="0.2" max="1.2" step="0.1" value="0.5">
+    </div>
+    <div class="setting">
+      <label for="crosshairColor">CROSSHAIR COLOR</label>
+      <select id="crosshairColor">
+        <option value="#ffffff">White</option><option value="#6cd9ff">Cyan</option><option value="#ff6f91">Pink</option><option value="#9eff6c">Lime</option><option value="#ffd45c">Yellow</option>
+      </select>
+    </div>
+    <div class="setting">
+      <label for="crosshairStyle">CROSSHAIR STYLE</label>
+      <select id="crosshairStyle"><option value="">Classic</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="plus">Plus</option></select>
+    </div>
+    <div class="setting">
+      <label for="aimMode">AIM BUTTON</label>
+      <select id="aimMode"><option value="hold">HOLD RIGHT MOUSE</option><option value="toggle">TOGGLE RIGHT MOUSE</option></select>
+    </div>
+    <div class="setting inline-setting">
+      <label for="invertY">INVERT MOUSE Y</label>
+      <input id="invertY" type="checkbox">
+    </div>
+    <div class="setting">
+      <label for="soundVolume">SOUND VOLUME <span id="soundValue">70</span></label>
+      <input id="soundVolume" type="range" min="0" max="100" step="1" value="70">
+    </div>
+    <div class="setting inline-setting">
+      <label for="soundMute">MUTE ALL SOUND</label>
+      <input id="soundMute" type="checkbox">
+    </div>
+    <div class="setting controls-setting">
+      <label>CONTROLS <span id="bindStatus">CLICK A KEY TO REBIND</span></label>
+      <div id="bindList" class="bind-list"></div>
+      <button id="bindsReset" type="button" class="small-button">RESET CONTROLS</button>
+    </div>
+    <div class="setting">
+      <label>PLAYER PROFILE</label>
+      <button id="profileOpen" type="button" class="small-button">OPEN PROFILE / NAME</button>
+    </div>
+    <button id="closeSettings" class="small-button">DONE</button>
+  </div>
+
+  <div id="progressPanel">
+    <div class="name-card wide-card">
+      <span class="tag">PROGRESSION</span>
+      <h2>DAILY QUESTS</h2>
+      <p class="progress-keys">KEYS <b id="keyCount">0</b> 🔑 <span id="questReset"></span></p>
+      <div id="questList" class="quest-list"></div>
+      <h2>CHESTS</h2>
+      <div class="chest-row">
+        <button id="chestWeapon" class="chest-card"><span class="chest-icon">🧰</span><b>WEAPON CHEST</b><em>4 KEYS · UNLOCKS A GUN OR MELEE</em></button>
+        <button id="chestWrap" class="chest-card"><span class="chest-icon">🎨</span><b>WRAP CHEST</b><em>2 KEYS · UNLOCKS A WEAPON WRAP</em></button>
+      </div>
+      <h2>INVENTORY</h2>
+      <div id="wrapList" class="wrap-list"></div>
+      <p id="progressStatus" class="progress-status"></p>
+      <button id="closeProgress" class="small-button">DONE</button>
+    </div>
+  </div>
+
+  <div id="leaderboardPanel">
+    <div class="name-card wide-card">
+      <span class="tag">STATS</span>
+      <h2>LEADERBOARD</h2>
+      <p>Kills, wins and accuracy across saved profiles.</p>
+      <div id="leaderboardBody" class="leaderboard-body"></div>
+      <button id="closeLeaderboard" class="small-button">DONE</button>
+    </div>
+  </div>
+
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script>
     // Fallback CDN in case the primary Babylon host is unreachable.

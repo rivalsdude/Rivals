@@ -112,6 +112,7 @@ export class Vector3 extends B.Vector3 {
   }
   lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
   distanceTo(v) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
+  distanceToSquared(v) { const dx=this.x-v.x, dy=this.y-v.y, dz=this.z-v.z; return dx*dx+dy*dy+dz*dz; }
   lerp(v, alpha) {
     this.x += (v.x - this.x) * alpha;
     this.y += (v.y - this.y) * alpha;
@@ -830,10 +831,20 @@ export class Raycaster {
       .filter((info) => info && info.pickedMesh && info.distance >= near && info.distance <= far)
       .map((info) => {
         const point = info.pickedPoint || B.Vector3.Zero();
+        let normal;
+        try {
+          const pickedNormal = info.getNormal ? info.getNormal(true) : null;
+          if (pickedNormal) normal = new Vector3(pickedNormal.x, pickedNormal.y, pickedNormal.z);
+        } catch (error) { normal = null; }
+        if (!normal) {
+          normal = new Vector3(-this.ray.direction.x, -this.ray.direction.y, -this.ray.direction.z);
+        }
         return {
           object: info.pickedMesh.__wrap,
           distance: info.distance,
           point: new Vector3(point.x, point.y, point.z),
+          normal,
+          face: { normal },
         };
       })
       .filter((hit) => !!hit.object)
