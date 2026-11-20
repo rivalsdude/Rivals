@@ -33,7 +33,7 @@ cylinder(1.8,.35,0,1.5,0,mat(0x182858)); cylinder(.4,3,0,3,0,mat(cyan,cyan)); co
 // Grid stars / ceiling light bars
 for(let i=0;i<28;i++){ const x=(Math.random()-.5)*70, z=(Math.random()-.5)*70; box(.12,.12,.12,x,8+Math.random()*12,z,mat(i%2?cyan:pink,i%2?cyan:pink)); }
 const blueScoreEl=document.getElementById('blueScore'), redScoreEl=document.getElementById('redScore'), healthBarEl=document.getElementById('healthBar'), hpTextEl=document.getElementById('hpText');
-const crosshair=document.getElementById('crosshair'), settings=document.getElementById('settings'), weaponName=document.getElementById('weaponName'), slotLabel=document.getElementById('slotLabel'), ammoText=document.getElementById('ammoText'), hitmark=document.getElementById('hitmark'), damageNumber=document.getElementById('damage');
+const crosshair=document.getElementById('crosshair'), settings=document.getElementById('settings'), weaponName=document.getElementById('weaponName'), slotLabel=document.getElementById('slotLabel'), ammoText=document.getElementById('ammoText'), hitmark=document.getElementById('hitmark'), killmark=document.getElementById('killmark'), damageNumber=document.getElementById('damage');
 /* ---------------- WEAPON CATALOG ----------------
  * Every gun and melee lives in one catalog. `base` chooses the existing
  * shooting/reload/viewmodel archetype (rifle, pistol, fists, grenade, scythe,
@@ -270,17 +270,37 @@ function finishReload(){
 }
 function updateCrosshair(){ crosshair.className='crosshair '+document.getElementById('crosshairStyle').value; crosshair.style.color=document.getElementById('crosshairColor').value; }
 function showHit(damage,kind='body'){
+  // Hit feedback belongs to a match, never to the walkable lobby.
+  if(gameMode==='lobby'){clearHitMarkers();return;}
   hitmark.className=kind==='headshot'?'headshot':kind==='kill'?'kill':'';
   hitmark.classList.remove('show');damageNumber.classList.remove('show');
   void hitmark.offsetWidth;
   damageNumber.textContent='-'+damage;
   hitmark.classList.add('show');damageNumber.classList.add('show');
+  scheduleHitMarkerCleanup();
   playSound(kind==='kill'?'kill':kind==='headshot'?'headshot':'hit');
 }
 function showKillMarker(){
-  const el=document.getElementById('killmark');
-  if(!el)return;
-  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+  if(gameMode==='lobby')return;
+  if(!killmark)return;
+  killmark.classList.remove('show');void killmark.offsetWidth;killmark.classList.add('show');
+  scheduleHitMarkerCleanup();
+}
+/* Hit markers are transient: clear every feedback element four seconds after
+ * its latest appearance (and immediately whenever the lobby is entered). */
+const HIT_MARKER_LIFETIME=4000;
+let hitMarkerTimer=0;
+function clearHitMarkers(){
+  clearTimeout(hitMarkerTimer);
+  hitMarkerTimer=0;
+  hitmark.className='';
+  damageNumber.className='';
+  damageNumber.textContent='0';
+  if(killmark)killmark.className='';
+}
+function scheduleHitMarkerCleanup(){
+  clearTimeout(hitMarkerTimer);
+  hitMarkerTimer=setTimeout(clearHitMarkers,HIT_MARKER_LIFETIME);
 }
 /* ---------------- WORLD GUN MODELS ----------------
  * Shared silhouettes for bots and remote players. Guns point along +Z so the
@@ -733,6 +753,7 @@ function startSingleRound(){
 function showSingleReport(){
   single.active=false;single.countdown=0;single.goFlash=0;gameMode='lobby';
   hideCountdown();
+  clearHitMarkers();
   bots.forEach(bot=>{bot.root.visible=false;});
   const report=document.getElementById('singleReport');
   if(report){report.querySelector('h2').textContent=single.wins>=3?'MISSION COMPLETE':'MISSION FAILED';report.querySelector('p').textContent='Rounds won: '+single.wins+' / 5 · Difficulty: '+single.difficulty.toUpperCase();report.classList.add('open');}
@@ -920,6 +941,7 @@ function showCpuReport(){
   cpu.active=false;cpu.over=false;gameMode='lobby';
   bots.forEach(bot=>{bot.root.visible=false;});
   hideCountdown();
+  clearHitMarkers();
   document.body.classList.remove('match-open');
   const report=document.getElementById('singleReport');
   if(report){
@@ -2615,6 +2637,7 @@ function enterLobby(){
   cpu.active=false;cpu.over=false;cpu.mode='';cpu.playerDown=false;
   single.active=false;single.countdown=0;single.goFlash=0;
   hideCountdown();
+  clearHitMarkers();
   document.body.classList.remove('match-open');
   const report=document.getElementById('singleReport');
   if(report)report.classList.remove('open');

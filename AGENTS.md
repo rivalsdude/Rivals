@@ -220,7 +220,9 @@ volume/mute, the key rebinding list and the profile opener.
 - bots and remote players use the detailed humanoid `buildFighter` model
   (head, visor, torso, limbs, shoulder pads, per-archetype gun) and
   `animateFighter` for walking, crouching and reload poses
-- shot hits show body/head/kill hit markers and floating damage numbers
+- shot hits show body/head/kill hit markers and floating damage numbers; every
+  marker is cleared four seconds after its latest appearance and immediately on
+  entering the lobby (lobby hit feedback is suppressed)
 - bullet impacts leave small dark decals (capped at 52) and short-lived
   additive sparks; decals and effects are ignored by hit and line-of-sight rays
 - remote avatars swap their visible gun by the catalog entry's `base` and play
